@@ -97,9 +97,9 @@ HWY_INLINE V FastTan(D d, V x) {
         static_cast<T>(57.295779513082323), static_cast<T>(57.295779513082323)};
 
     HWY_ALIGN static constexpr T arr_b[] = {
-        0.0000000000000000, 10.0000000000000000, 46.0000000000000000,
-        217.00000000000000, 297.00000000000000,  542.00000000000000,
-        542.00000000000000, 542.00000000000000};
+        static_cast<T>(0.0000000000000000), static_cast<T>(10.0000000000000000), static_cast<T>(46.0000000000000000),
+        static_cast<T>(217.00000000000000), static_cast<T>(297.00000000000000), static_cast<T>(542.00000000000000),
+        static_cast<T>(542.00000000000000), static_cast<T>(542.00000000000000)};
 
     HWY_ALIGN static constexpr T arr_c[] = {
         static_cast<T>(-57.295779513082323), static_cast<T>(-229.18311805232929), static_cast<T>(-286.47889756541161),
@@ -107,9 +107,9 @@ HWY_INLINE V FastTan(D d, V x) {
         static_cast<T>(-630.25357464271012), static_cast<T>(-630.25357464271012)};
 
     HWY_ALIGN static constexpr T arr_d[] = {
-        632.00000000000000, 657.00000000000000, 541.00000000000000,
-        1252.0000000000000, 910.00000000000000, 990.00000000000000,
-        990.00000000000000, 990.00000000000000};
+        static_cast<T>(632.00000000000000), static_cast<T>(657.00000000000000), static_cast<T>(541.00000000000000),
+        static_cast<T>(1252.0000000000000), static_cast<T>(910.00000000000000), static_cast<T>(990.00000000000000),
+        static_cast<T>(990.00000000000000), static_cast<T>(990.00000000000000)};
 
     if constexpr (kLanes >= 8 && !HWY_HAVE_SCALABLE) {
       // Cast to "Indices" Type
@@ -172,7 +172,7 @@ HWY_INLINE V FastTan(D d, V x) {
   // Guard against denominator underflow/sign-flip near singularities
   T epsilon_val;
   if constexpr (sizeof(T) == 8) {
-    epsilon_val = 1e-15;
+    epsilon_val = static_cast<T>(1e-15);
   } else {
     epsilon_val = static_cast<T>(1e-6);
   }
@@ -247,17 +247,17 @@ HWY_INLINE V FastAtan(D d, V val) {
         static_cast<T>(572.95779513082321), static_cast<T>(229.18311805232929), static_cast<T>(57.295779513082323),
         static_cast<T>(57.295779513082323), static_cast<T>(57.295779513082323)};
     HWY_ALIGN static constexpr T arr_b[] = {
-        0.0000000000000000, 10.0000000000000000, 46.0000000000000000,
-        217.00000000000000, 297.00000000000000,  542.00000000000000,
-        542.00000000000000, 542.00000000000000};
+        static_cast<T>(0.0000000000000000), static_cast<T>(10.0000000000000000), static_cast<T>(46.0000000000000000),
+        static_cast<T>(217.00000000000000), static_cast<T>(297.00000000000000), static_cast<T>(542.00000000000000),
+        static_cast<T>(542.00000000000000), static_cast<T>(542.00000000000000)};
     HWY_ALIGN static constexpr T arr_c[] = {
         static_cast<T>(-57.295779513082323), static_cast<T>(-229.18311805232929), static_cast<T>(-286.47889756541161),
         static_cast<T>(-744.84513367007019), static_cast<T>(-572.95779513082321), static_cast<T>(-630.25357464271012),
         static_cast<T>(-630.25357464271012), static_cast<T>(-630.25357464271012)};
     HWY_ALIGN static constexpr T arr_d[] = {
-        632.00000000000000, 657.00000000000000, 541.00000000000000,
-        1252.0000000000000, 910.00000000000000, 990.00000000000000,
-        990.00000000000000, 990.00000000000000};
+        static_cast<T>(632.00000000000000), static_cast<T>(657.00000000000000), static_cast<T>(541.00000000000000),
+        static_cast<T>(1252.0000000000000), static_cast<T>(910.00000000000000), static_cast<T>(990.00000000000000),
+        static_cast<T>(990.00000000000000), static_cast<T>(990.00000000000000)};
 
     if constexpr (kLanes >= 8 && !HWY_HAVE_SCALABLE) {
       auto idx = IndicesFromVec(d, idx_i);
