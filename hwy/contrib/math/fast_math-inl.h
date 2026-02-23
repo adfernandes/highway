@@ -92,23 +92,34 @@ HWY_INLINE V FastTan(D d, V x) {
     auto idx_int = ConvertTo(RebindToSigned<D>(), idx_float);
 
     HWY_ALIGN static constexpr T arr_a[] = {
-        static_cast<T>(630.25357464271012), static_cast<T>(572.95779513082321), static_cast<T>(343.77467707849392),
-        static_cast<T>(572.95779513082321), static_cast<T>(229.18311805232929), static_cast<T>(57.295779513082323),
+        static_cast<T>(630.25357464271012), static_cast<T>(572.95779513082321),
+        static_cast<T>(343.77467707849392), static_cast<T>(572.95779513082321),
+        static_cast<T>(229.18311805232929), static_cast<T>(57.295779513082323),
         static_cast<T>(57.295779513082323), static_cast<T>(57.295779513082323)};
 
-    HWY_ALIGN static constexpr T arr_b[] = {
-        static_cast<T>(0.0000000000000000), static_cast<T>(10.0000000000000000), static_cast<T>(46.0000000000000000),
-        static_cast<T>(217.00000000000000), static_cast<T>(297.00000000000000), static_cast<T>(542.00000000000000),
-        static_cast<T>(542.00000000000000), static_cast<T>(542.00000000000000)};
+    HWY_ALIGN static constexpr T arr_b[] = {static_cast<T>(0.0000000000000000),
+                                            static_cast<T>(10.0000000000000000),
+                                            static_cast<T>(46.0000000000000000),
+                                            static_cast<T>(217.00000000000000),
+                                            static_cast<T>(297.00000000000000),
+                                            static_cast<T>(542.00000000000000),
+                                            static_cast<T>(542.00000000000000),
+                                            static_cast<T>(542.00000000000000)};
 
     HWY_ALIGN static constexpr T arr_c[] = {
-        static_cast<T>(-57.295779513082323), static_cast<T>(-229.18311805232929), static_cast<T>(-286.47889756541161),
-        static_cast<T>(-744.84513367007019), static_cast<T>(-572.95779513082321), static_cast<T>(-630.25357464271012),
-        static_cast<T>(-630.25357464271012), static_cast<T>(-630.25357464271012)};
+        static_cast<T>(-57.295779513082323),
+        static_cast<T>(-229.18311805232929),
+        static_cast<T>(-286.47889756541161),
+        static_cast<T>(-744.84513367007019),
+        static_cast<T>(-572.95779513082321),
+        static_cast<T>(-630.25357464271012),
+        static_cast<T>(-630.25357464271012),
+        static_cast<T>(-630.25357464271012)};
 
     HWY_ALIGN static constexpr T arr_d[] = {
-        static_cast<T>(632.00000000000000), static_cast<T>(657.00000000000000), static_cast<T>(541.00000000000000),
-        static_cast<T>(1252.0000000000000), static_cast<T>(910.00000000000000), static_cast<T>(990.00000000000000),
+        static_cast<T>(632.00000000000000), static_cast<T>(657.00000000000000),
+        static_cast<T>(541.00000000000000), static_cast<T>(1252.0000000000000),
+        static_cast<T>(910.00000000000000), static_cast<T>(990.00000000000000),
         static_cast<T>(990.00000000000000), static_cast<T>(990.00000000000000)};
 
     if constexpr (kLanes >= 8 && !HWY_HAVE_SCALABLE) {
@@ -243,20 +254,31 @@ HWY_INLINE V FastAtan(D d, V val) {
     idx_i = Add(idx_i, And(VecFromMask(DI(), mask75), one_i));
 
     HWY_ALIGN static constexpr T arr_a[] = {
-        static_cast<T>(630.25357464271012), static_cast<T>(572.95779513082321), static_cast<T>(343.77467707849392),
-        static_cast<T>(572.95779513082321), static_cast<T>(229.18311805232929), static_cast<T>(57.295779513082323),
+        static_cast<T>(630.25357464271012), static_cast<T>(572.95779513082321),
+        static_cast<T>(343.77467707849392), static_cast<T>(572.95779513082321),
+        static_cast<T>(229.18311805232929), static_cast<T>(57.295779513082323),
         static_cast<T>(57.295779513082323), static_cast<T>(57.295779513082323)};
-    HWY_ALIGN static constexpr T arr_b[] = {
-        static_cast<T>(0.0000000000000000), static_cast<T>(10.0000000000000000), static_cast<T>(46.0000000000000000),
-        static_cast<T>(217.00000000000000), static_cast<T>(297.00000000000000), static_cast<T>(542.00000000000000),
-        static_cast<T>(542.00000000000000), static_cast<T>(542.00000000000000)};
+    HWY_ALIGN static constexpr T arr_b[] = {static_cast<T>(0.0000000000000000),
+                                            static_cast<T>(10.0000000000000000),
+                                            static_cast<T>(46.0000000000000000),
+                                            static_cast<T>(217.00000000000000),
+                                            static_cast<T>(297.00000000000000),
+                                            static_cast<T>(542.00000000000000),
+                                            static_cast<T>(542.00000000000000),
+                                            static_cast<T>(542.00000000000000)};
     HWY_ALIGN static constexpr T arr_c[] = {
-        static_cast<T>(-57.295779513082323), static_cast<T>(-229.18311805232929), static_cast<T>(-286.47889756541161),
-        static_cast<T>(-744.84513367007019), static_cast<T>(-572.95779513082321), static_cast<T>(-630.25357464271012),
-        static_cast<T>(-630.25357464271012), static_cast<T>(-630.25357464271012)};
+        static_cast<T>(-57.295779513082323),
+        static_cast<T>(-229.18311805232929),
+        static_cast<T>(-286.47889756541161),
+        static_cast<T>(-744.84513367007019),
+        static_cast<T>(-572.95779513082321),
+        static_cast<T>(-630.25357464271012),
+        static_cast<T>(-630.25357464271012),
+        static_cast<T>(-630.25357464271012)};
     HWY_ALIGN static constexpr T arr_d[] = {
-        static_cast<T>(632.00000000000000), static_cast<T>(657.00000000000000), static_cast<T>(541.00000000000000),
-        static_cast<T>(1252.0000000000000), static_cast<T>(910.00000000000000), static_cast<T>(990.00000000000000),
+        static_cast<T>(632.00000000000000), static_cast<T>(657.00000000000000),
+        static_cast<T>(541.00000000000000), static_cast<T>(1252.0000000000000),
+        static_cast<T>(910.00000000000000), static_cast<T>(990.00000000000000),
         static_cast<T>(990.00000000000000), static_cast<T>(990.00000000000000)};
 
     if constexpr (kLanes >= 8 && !HWY_HAVE_SCALABLE) {
@@ -464,21 +486,21 @@ HWY_INLINE V FastTanh(D d, V val) {
     idx_i = Min(idx_i, Set(DI(), 7));
 
     HWY_ALIGN static constexpr T arr_a[] = {
-        static_cast<T>(-7070.3),   static_cast<T>(-287.1719),
-        static_cast<T>(-38.3758),  static_cast<T>(-12.0230),
-        static_cast<T>(-4.4597),   static_cast<T>(-2.0653),
-        static_cast<T>(-1.0094),   static_cast<T>(-0.4179)};
+        static_cast<T>(-7070.3),  static_cast<T>(-287.1719),
+        static_cast<T>(-38.3758), static_cast<T>(-12.0230),
+        static_cast<T>(-4.4597),  static_cast<T>(-2.0653),
+        static_cast<T>(-1.0094),  static_cast<T>(-0.4179)};
     HWY_ALIGN static constexpr T arr_b[] = {
         static_cast<T>(1.0), static_cast<T>(1.0), static_cast<T>(1.0),
         static_cast<T>(1.0), static_cast<T>(1.0), static_cast<T>(1.0),
         static_cast<T>(1.0), static_cast<T>(1.0)};
     HWY_ALIGN static constexpr T arr_c[] = {
-        static_cast<T>(-578.0),  static_cast<T>(-67.0176),
+        static_cast<T>(-578.0),   static_cast<T>(-67.0176),
         static_cast<T>(-16.0803), static_cast<T>(-7.0634),
         static_cast<T>(-3.3816),  static_cast<T>(-1.8164),
         static_cast<T>(-0.9760),  static_cast<T>(-0.4175)};
     HWY_ALIGN static constexpr T arr_d[] = {
-        static_cast<T>(-7027.2), static_cast<T>(-272.3521),
+        static_cast<T>(-7027.2),  static_cast<T>(-272.3521),
         static_cast<T>(-31.3271), static_cast<T>(-7.3286),
         static_cast<T>(-1.1620),  static_cast<T>(0.4063),
         static_cast<T>(0.8946),   static_cast<T>(0.9978)};
@@ -572,6 +594,190 @@ HWY_INLINE V FastTanh(D d, V val) {
   return CopySign(result, val);  // Restore sign
 }
 
+/**
+ * Fast approximation of log(x).
+ *
+ * Valid Lane Types: float32, float64
+ * Max Relative Error: 0.063%
+ * Average Relative Error : 0.000025%
+ * Valid Range: float32: (0, +FLT_MAX]
+ *              float64: (0, +DBL_MAX]
+ *
+ * @return natural logarithm of 'x'
+ */
+template <class D, class V>
+HWY_INLINE V FastLog(D d, V x) {
+  using T = TFromD<D>;
+  using TI = MakeSigned<T>;
+  using TU = MakeUnsigned<T>;
+  const Rebind<TI, D> di;
+  const Rebind<TU, D> du;
+  using VI = decltype(Zero(di));
+
+  constexpr bool kIsF32 = (sizeof(T) == 4);
+
+  // Constants for Range Reduction
+  // kMagic is approx 1/sqrt(2). It is used to center the mantissa interval
+  // around 1.0 (specifically [0.707, 1.414])
+  const VI kMagic = Set(di, kIsF32 ? static_cast<TI>(0x3F3504F3L)
+                                   : static_cast<TI>(0x3FE6A09E00000000LL));
+  // Bit pattern for 1.0. Used in the integer arithmetic to extract the
+  // exponent.
+  const VI kExpMask = Set(di, kIsF32 ? static_cast<TI>(0x3F800000L)
+                                     : static_cast<TI>(0x3FF0000000000000LL));
+  // Integer exponent adjustment (-25 or -54) corresponding to kScale.
+  const VI kExpScale =
+      Set(di, kIsF32 ? static_cast<TI>(-25) : static_cast<TI>(-54));
+  // Mantissa mask.
+  const VI kManMask = Set(di, kIsF32 ? static_cast<TI>(0x7FFFFFL)
+                                     : static_cast<TI>(0xFFFFF00000000LL));
+  // Mask for lower 32 or 64 bits.
+  const VI kLowerBits = Set(di, kIsF32 ? static_cast<TI>(0x00000000L)
+                                       : static_cast<TI>(0xFFFFFFFFLL));
+  const V kMinNormal = Set(d, kIsF32 ? static_cast<T>(1.175494351e-38f)
+                                     : static_cast<T>(2.2250738585072014e-308));
+  // Scale to normalize subnormal inputs: 2^25 (f32) or 2^54 (f64)
+  const V kScale = Set(d, kIsF32 ? static_cast<T>(3.355443200e+7f)
+                                 : static_cast<T>(1.8014398509481984e+16));
+  const V kLn2 = Set(d, static_cast<T>(0.6931471805599453));
+
+  // Handle Subnormals
+  const auto is_denormal = Lt(x, kMinNormal);
+  x = MaskedMulOr(x, is_denormal, x, kScale);
+
+  // Compute exponent
+  auto exp_bits = Add(BitCast(di, x), Sub(kExpMask, kMagic));
+  const VI exp_scale =
+      BitCast(di, IfThenElseZero(is_denormal, BitCast(d, kExpScale)));
+
+  constexpr int kMantissaShift = kIsF32 ? 23 : 52;
+  const auto kBias = Set(di, kIsF32 ? 0x7F : 0x3FF);
+  const auto exp_int = Sub(BitCast(di, ShiftRight<kMantissaShift>(
+                                           BitCast(du, BitCast(d, exp_bits)))),
+                           kBias);
+  const auto exp = ConvertTo(d, Add(exp_scale, exp_int));
+
+  // Renormalize x to y in [0.707, 1.414]
+  const auto x_bits = BitCast(di, x);
+  const auto y_bits =
+      OrAnd(Add(And(exp_bits, kManMask), kMagic), x_bits, kLowerBits);
+  const V y = BitCast(d, y_bits);
+
+  // Polynomial Approximation
+  const auto t0 = Set(d, static_cast<T>(0.7954951275));
+  const auto t1 = Set(d, static_cast<T>(0.883883475));
+  const auto t2 = Set(d, static_cast<T>(0.9722718225));
+  const auto t3 = Set(d, static_cast<T>(1.06066017));
+  const auto t4 = Set(d, static_cast<T>(1.1490485175));
+  const auto t5 = Set(d, static_cast<T>(1.237436865));
+  const auto t6 = Set(d, static_cast<T>(1.3258252125));
+
+  constexpr size_t kLanes = HWY_MAX_LANES_D(D);
+  V a, c, d_coef;
+
+  if constexpr ((kLanes >= 4 && !HWY_HAVE_SCALABLE) ||
+                (HWY_HAVE_SCALABLE && sizeof(T) == 4)) {
+    // --- Table Lookup ---
+    const auto scale = Set(d, static_cast<T>(11.3137085));
+    // Input is always non-negative, so Floor() + ConvertTo()
+    // can be replaced by direct ConvertTo() (truncation), which is faster.
+    // We use MulAdd(y, scale, -8.0) instead of Mul(Sub(y, lower_bound), scale)
+    // to save instructions. 0.70710678 * 11.3137085 ~= 8.0.
+    auto idx_i = ConvertInRangeTo(
+        RebindToSigned<D>(), MulAdd(y, scale, Set(d, static_cast<T>(-8.0))));
+
+    // Clamp index to 7 to handle overshoots
+    idx_i = Min(idx_i, Set(RebindToSigned<D>(), 7));
+
+    HWY_ALIGN static constexpr T arr_a[] = {
+        static_cast<T>(-0.9981), static_cast<T>(-0.9996),
+        static_cast<T>(-1.0000), static_cast<T>(-1.0000),
+        static_cast<T>(-1.0001), static_cast<T>(-1.0004),
+        static_cast<T>(-1.0013), static_cast<T>(-1.0026)};
+    // b array is not needed since b is always 1.0.
+    HWY_ALIGN static constexpr T arr_c[] = {
+        static_cast<T>(-0.5825), static_cast<T>(-0.5478),
+        static_cast<T>(-0.5181), static_cast<T>(-0.4974),
+        static_cast<T>(-0.4763), static_cast<T>(-0.4597),
+        static_cast<T>(-0.4454), static_cast<T>(-0.4332)};
+    HWY_ALIGN static constexpr T arr_d[] = {
+        static_cast<T>(-0.4371), static_cast<T>(-0.4595),
+        static_cast<T>(-0.4829), static_cast<T>(-0.5025),
+        static_cast<T>(-0.5260), static_cast<T>(-0.5482),
+        static_cast<T>(-0.5706), static_cast<T>(-0.5932)};
+
+    if constexpr (kLanes >= 8 && !HWY_HAVE_SCALABLE) {
+      auto idx = IndicesFromVec(d, idx_i);
+      a = TableLookupLanes(Load(d, arr_a), idx);
+      c = TableLookupLanes(Load(d, arr_c), idx);
+      d_coef = TableLookupLanes(Load(d, arr_d), idx);
+    } else {
+      auto idx = IndicesFromVec(d, idx_i);
+      FixedTag<T, 4> d4;
+      a = TwoTablesLookupLanes(d, Load(d4, arr_a), Load(d4, arr_a + 4), idx);
+      c = TwoTablesLookupLanes(d, Load(d4, arr_c), Load(d4, arr_c + 4), idx);
+      d_coef =
+          TwoTablesLookupLanes(d, Load(d4, arr_d), Load(d4, arr_d + 4), idx);
+    }
+  } else {
+    // --- FALLBACK PATH: Blend Chain ---
+    // Start with highest index (7)
+    a = Set(d, static_cast<T>(-1.0026));
+    c = Set(d, static_cast<T>(-0.4332));
+    d_coef = Set(d, static_cast<T>(-0.5932));
+
+    // If y < t6 (idx 6)
+    auto mask = Lt(y, t6);
+    a = IfThenElse(mask, Set(d, static_cast<T>(-1.0013)), a);
+    c = IfThenElse(mask, Set(d, static_cast<T>(-0.4454)), c);
+    d_coef = IfThenElse(mask, Set(d, static_cast<T>(-0.5706)), d_coef);
+
+    // If y < t5 (idx 5)
+    mask = Lt(y, t5);
+    a = IfThenElse(mask, Set(d, static_cast<T>(-1.0004)), a);
+    c = IfThenElse(mask, Set(d, static_cast<T>(-0.4597)), c);
+    d_coef = IfThenElse(mask, Set(d, static_cast<T>(-0.5482)), d_coef);
+
+    // If y < t4 (idx 4)
+    mask = Lt(y, t4);
+    a = IfThenElse(mask, Set(d, static_cast<T>(-1.0001)), a);
+    c = IfThenElse(mask, Set(d, static_cast<T>(-0.4763)), c);
+    d_coef = IfThenElse(mask, Set(d, static_cast<T>(-0.5260)), d_coef);
+
+    // If y < t3 (idx 3)
+    mask = Lt(y, t3);
+    a = IfThenElse(mask, Set(d, static_cast<T>(-1.0000)), a);
+    c = IfThenElse(mask, Set(d, static_cast<T>(-0.4974)), c);
+    d_coef = IfThenElse(mask, Set(d, static_cast<T>(-0.5025)), d_coef);
+
+    // If y < t2 (idx 2)
+    mask = Lt(y, t2);
+    a = IfThenElse(mask, Set(d, static_cast<T>(-1.0000)), a);
+    c = IfThenElse(mask, Set(d, static_cast<T>(-0.5181)), c);
+    d_coef = IfThenElse(mask, Set(d, static_cast<T>(-0.4829)), d_coef);
+
+    // If y < t1 (idx 1)
+    mask = Lt(y, t1);
+    a = IfThenElse(mask, Set(d, static_cast<T>(-0.9996)), a);
+    c = IfThenElse(mask, Set(d, static_cast<T>(-0.5478)), c);
+    d_coef = IfThenElse(mask, Set(d, static_cast<T>(-0.4595)), d_coef);
+
+    // If y < t0 (idx 0)
+    mask = Lt(y, t0);
+    a = IfThenElse(mask, Set(d, static_cast<T>(-0.9981)), a);
+    c = IfThenElse(mask, Set(d, static_cast<T>(-0.5825)), c);
+    d_coef = IfThenElse(mask, Set(d, static_cast<T>(-0.4371)), d_coef);
+  }
+
+  // Math: y = (ax + 1.0)/(cx + d_coef)
+  auto num = MulAdd(a, y, Set(d, static_cast<T>(1.0)));
+  auto den = MulAdd(c, y, d_coef);
+
+  auto approx = Div(num, den);
+
+  return MulAdd(exp, kLn2, approx);
+}
+
 template <class D, class V>
 HWY_NOINLINE V CallFastAtan(const D d, VecArg<V> x) {
   return FastAtan(d, x);
@@ -590,6 +796,11 @@ HWY_NOINLINE V CallFastAtan2(const D d, VecArg<V> y, VecArg<V> x) {
 template <class D, class V>
 HWY_NOINLINE V CallFastTanh(const D d, VecArg<V> x) {
   return FastTanh(d, x);
+}
+
+template <class D, class V>
+HWY_NOINLINE V CallFastLog(const D d, VecArg<V> x) {
+  return FastLog(d, x);
 }
 
 }  // namespace HWY_NAMESPACE
