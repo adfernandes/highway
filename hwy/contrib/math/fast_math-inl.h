@@ -374,6 +374,204 @@ HWY_INLINE V FastAtan2(const D d, V y, V x) {
   return IfThenElse(nan, NaN(d), CopySign(t, y));
 }
 
+/**
+ * Fast approximation of tanh(x).
+ *
+ * Valid Lane Types: float32, float64
+ * Max Relative Error : <0.13%
+ * Max Relative Error for [-0.01, 0.01] : <0.003%
+ * Average Relative Error : 0.0031%
+ * Valid Range: float32: [-1e35, +1e35]
+ *              float64: [-1e305, +1e305]
+ *
+ * @return hyperbolic tangent of 'x'
+ */
+template <class D, class V>
+HWY_INLINE V FastTanh(D d, V val) {
+  using T = TFromD<D>;
+
+  // Abs(val) and preserve sign for later
+  auto y = Abs(val);
+
+  // Thresholds for intervals (atanh(0.13), atanh(2/6), ..., atanh(0.99))
+  const auto t0 = Set(d, static_cast<T>(0.130739850028878));
+  const auto t1 = Set(d, static_cast<T>(0.346573590279973));
+  const auto t2 = Set(d, static_cast<T>(0.549306144334055));
+  const auto t3 = Set(d, static_cast<T>(0.80471895621705));
+  const auto t4 = Set(d, static_cast<T>(1.19894763639919));
+  const auto t5 = Set(d, static_cast<T>(1.56774710796457));
+  const auto t6 = Set(d, static_cast<T>(2.64665241236225));
+
+  constexpr size_t kLanes = HWY_MAX_LANES_D(D);
+  V a, b, c, d_coef;
+
+  if constexpr ((kLanes >= 4 && !HWY_HAVE_SCALABLE) ||
+                (HWY_HAVE_SCALABLE && sizeof(T) == 4)) {
+    // Index calculation by counting thresholds crossed
+    using DI = RebindToSigned<D>;
+    auto idx_i = Zero(DI());
+    auto one_i = Set(DI(), 1);
+
+    // Rebind masks to integer comparisons
+    auto mask0 = RebindMask(DI(), Ge(y, t0));
+    auto mask1 = RebindMask(DI(), Ge(y, t1));
+    auto mask2 = RebindMask(DI(), Ge(y, t2));
+    auto mask3 = RebindMask(DI(), Ge(y, t3));
+    auto mask4 = RebindMask(DI(), Ge(y, t4));
+    auto mask5 = RebindMask(DI(), Ge(y, t5));
+    auto mask6 = RebindMask(DI(), Ge(y, t6));
+
+#ifdef HWY_NATIVE_MASK
+    // Adder tree for native masks.
+    const auto sum0 = IfThenElseZero(mask0, one_i);
+    const auto sum01 = MaskedAddOr(sum0, mask1, sum0, one_i);
+
+    const auto sum2 = IfThenElseZero(mask2, one_i);
+    const auto sum23 = MaskedAddOr(sum2, mask3, sum2, one_i);
+
+    const auto sum4 = IfThenElseZero(mask4, one_i);
+    const auto sum45 = MaskedAddOr(sum4, mask5, sum4, one_i);
+
+    const auto sum6 = IfThenElseZero(mask6, one_i);
+
+    const auto sum03 = Add(sum01, sum23);
+    const auto sum46 = Add(sum45, sum6);
+    idx_i = Add(sum03, sum46);
+#else
+    (void)one_i;
+    // VecFromMask returns -1 if true, 0 otherwise.
+    // We accumulate these -1s in a tree dependency to reduce latency.
+    const auto m0 = VecFromMask(DI(), mask0);
+    const auto m1 = VecFromMask(DI(), mask1);
+    const auto m2 = VecFromMask(DI(), mask2);
+    const auto m3 = VecFromMask(DI(), mask3);
+    const auto m4 = VecFromMask(DI(), mask4);
+    const auto m5 = VecFromMask(DI(), mask5);
+    const auto m6 = VecFromMask(DI(), mask6);
+
+    const auto sum01 = Add(m0, m1);
+    const auto sum23 = Add(m2, m3);
+    const auto sum45 = Add(m4, m5);
+
+    const auto sum03 = Add(sum01, sum23);
+    const auto sum46 = Add(sum45, m6);
+
+    // idx_i = - (sum of -1s)
+    idx_i = Neg(Add(sum03, sum46));
+#endif
+
+    // Clamp index to 7 to handle precision overshoots
+    idx_i = Min(idx_i, Set(DI(), 7));
+
+    HWY_ALIGN static constexpr T arr_a[] = {
+        static_cast<T>(-7070.3),   static_cast<T>(-287.1719),
+        static_cast<T>(-38.3758),  static_cast<T>(-12.0230),
+        static_cast<T>(-4.4597),   static_cast<T>(-2.0653),
+        static_cast<T>(-1.0094),   static_cast<T>(-0.4179)};
+    HWY_ALIGN static constexpr T arr_b[] = {
+        static_cast<T>(1.0), static_cast<T>(1.0), static_cast<T>(1.0),
+        static_cast<T>(1.0), static_cast<T>(1.0), static_cast<T>(1.0),
+        static_cast<T>(1.0), static_cast<T>(1.0)};
+    HWY_ALIGN static constexpr T arr_c[] = {
+        static_cast<T>(-578.0),  static_cast<T>(-67.0176),
+        static_cast<T>(-16.0803), static_cast<T>(-7.0634),
+        static_cast<T>(-3.3816),  static_cast<T>(-1.8164),
+        static_cast<T>(-0.9760),  static_cast<T>(-0.4175)};
+    HWY_ALIGN static constexpr T arr_d[] = {
+        static_cast<T>(-7027.2), static_cast<T>(-272.3521),
+        static_cast<T>(-31.3271), static_cast<T>(-7.3286),
+        static_cast<T>(-1.1620),  static_cast<T>(0.4063),
+        static_cast<T>(0.8946),   static_cast<T>(0.9978)};
+
+    if constexpr (kLanes >= 8 && !HWY_HAVE_SCALABLE) {
+      auto idx = IndicesFromVec(d, idx_i);
+      a = TableLookupLanes(Load(d, arr_a), idx);
+      b = TableLookupLanes(Load(d, arr_b), idx);
+      c = TableLookupLanes(Load(d, arr_c), idx);
+      d_coef = TableLookupLanes(Load(d, arr_d), idx);
+    } else {
+      auto idx = IndicesFromVec(d, idx_i);
+      FixedTag<T, 4> d4;
+      a = TwoTablesLookupLanes(d, Load(d4, arr_a), Load(d4, arr_a + 4), idx);
+      b = TwoTablesLookupLanes(d, Load(d4, arr_b), Load(d4, arr_b + 4), idx);
+      c = TwoTablesLookupLanes(d, Load(d4, arr_c), Load(d4, arr_c + 4), idx);
+      d_coef =
+          TwoTablesLookupLanes(d, Load(d4, arr_d), Load(d4, arr_d + 4), idx);
+    }
+  } else {
+    // --- FALLBACK PATH: Blend Chain ---
+    // Start with highest index (7)
+    a = Set(d, static_cast<T>(-0.4179));
+    b = Set(d, static_cast<T>(1.0));
+    c = Set(d, static_cast<T>(-0.4175));
+    d_coef = Set(d, static_cast<T>(0.9978));
+
+    // If y < t6 (idx 6)
+    auto mask = Lt(y, t6);
+    a = IfThenElse(mask, Set(d, static_cast<T>(-1.0094)), a);
+    b = IfThenElse(mask, Set(d, static_cast<T>(1.0)), b);
+    c = IfThenElse(mask, Set(d, static_cast<T>(-0.9760)), c);
+    d_coef = IfThenElse(mask, Set(d, static_cast<T>(0.8946)), d_coef);
+
+    // If y < t5 (idx 5)
+    mask = Lt(y, t5);
+    a = IfThenElse(mask, Set(d, static_cast<T>(-2.0653)), a);
+    b = IfThenElse(mask, Set(d, static_cast<T>(1.0)), b);
+    c = IfThenElse(mask, Set(d, static_cast<T>(-1.8164)), c);
+    d_coef = IfThenElse(mask, Set(d, static_cast<T>(0.4063)), d_coef);
+
+    // If y < t4 (idx 4)
+    mask = Lt(y, t4);
+    a = IfThenElse(mask, Set(d, static_cast<T>(-4.4597)), a);
+    b = IfThenElse(mask, Set(d, static_cast<T>(1.0)), b);
+    c = IfThenElse(mask, Set(d, static_cast<T>(-3.3816)), c);
+    d_coef = IfThenElse(mask, Set(d, static_cast<T>(-1.1620)), d_coef);
+
+    // If y < t3 (idx 3)
+    mask = Lt(y, t3);
+    a = IfThenElse(mask, Set(d, static_cast<T>(-12.0230)), a);
+    b = IfThenElse(mask, Set(d, static_cast<T>(1.0)), b);
+    c = IfThenElse(mask, Set(d, static_cast<T>(-7.0634)), c);
+    d_coef = IfThenElse(mask, Set(d, static_cast<T>(-7.3286)), d_coef);
+
+    // If y < t2 (idx 2)
+    mask = Lt(y, t2);
+    a = IfThenElse(mask, Set(d, static_cast<T>(-38.3758)), a);
+    b = IfThenElse(mask, Set(d, static_cast<T>(1.0)), b);
+    c = IfThenElse(mask, Set(d, static_cast<T>(-16.0803)), c);
+    d_coef = IfThenElse(mask, Set(d, static_cast<T>(-31.3271)), d_coef);
+
+    // If y < t1 (idx 1)
+    mask = Lt(y, t1);
+    a = IfThenElse(mask, Set(d, static_cast<T>(-287.1719)), a);
+    b = IfThenElse(mask, Set(d, static_cast<T>(1.0)), b);
+    c = IfThenElse(mask, Set(d, static_cast<T>(-67.0176)), c);
+    d_coef = IfThenElse(mask, Set(d, static_cast<T>(-272.3521)), d_coef);
+
+    // If y < t0 (idx 0)
+    mask = Lt(y, t0);
+    a = IfThenElse(mask, Set(d, static_cast<T>(-7070.3)), a);
+    b = IfThenElse(mask, Set(d, static_cast<T>(1.0)), b);
+    c = IfThenElse(mask, Set(d, static_cast<T>(-578.0)), c);
+    d_coef = IfThenElse(mask, Set(d, static_cast<T>(-7027.2)), d_coef);
+  }
+
+  // Math: y = (ax + b)/(cx + d)
+  auto num = MulAdd(a, y, b);
+  auto den = MulAdd(c, y, d_coef);
+
+  auto result = Div(num, den);
+
+  const auto kSmall = Set(d, static_cast<T>(0.05));
+  result = IfThenElse(Lt(y, kSmall), y, result);
+
+  const auto one = Set(d, static_cast<T>(1.0));
+  // Clamp the value to 1
+  result = Min(result, one);
+
+  return CopySign(result, val);  // Restore sign
+}
+
 template <class D, class V>
 HWY_NOINLINE V CallFastAtan(const D d, VecArg<V> x) {
   return FastAtan(d, x);
@@ -387,6 +585,11 @@ HWY_NOINLINE V CallFastTan(const D d, VecArg<V> x) {
 template <class D, class V>
 HWY_NOINLINE V CallFastAtan2(const D d, VecArg<V> y, VecArg<V> x) {
   return FastAtan2(d, y, x);
+}
+
+template <class D, class V>
+HWY_NOINLINE V CallFastTanh(const D d, VecArg<V> x) {
+  return FastTanh(d, x);
 }
 
 }  // namespace HWY_NAMESPACE
