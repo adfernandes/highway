@@ -274,11 +274,11 @@ struct TestFastLog {
     const double max_relative_error = 0.0007;
     const uint64_t samples = 1000000;
     if (sizeof(T) == 4) {
-      TestMathRelative<T, D>("FastLog", std::log, CallFastLog, d, FLT_MIN,
-                             FLT_MAX, max_relative_error, samples);
+      TestMathRelative<T, D>("FastLog", std::log, CallFastLog, d, static_cast<T>(FLT_MIN),
+                             static_cast<T>(FLT_MAX), max_relative_error, samples);
     } else {
-      TestMathRelative<T, D>("FastLog", std::log, CallFastLog, d, DBL_MIN,
-                             DBL_MAX, max_relative_error, samples);
+      TestMathRelative<T, D>("FastLog", std::log, CallFastLog, d, static_cast<T>(DBL_MIN),
+                             static_cast<T>(DBL_MAX), max_relative_error, samples);
     }
   }
 };
