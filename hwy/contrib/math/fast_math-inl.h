@@ -930,6 +930,40 @@ HWY_INLINE V FastExp(D d, V x) {
   return IfThenElseZero(Ge(x, kLowerBound), res);
 }
 
+/**
+ * Fast approximation of log2(x).
+ *
+ * Valid Lane Types: float32, float64
+ * Max Relative Error: 0.061%
+ * Valid Range: float32: (0, +FLT_MAX]
+ *              float64: (0, +DBL_MAX]
+ *
+ * @return base 2 logarithm of 'x'
+ */
+template <class D, class V>
+HWY_INLINE V FastLog2(D d, V x) {
+  using T = TFromD<D>;
+  const auto kInvLn2 = Set(d, static_cast<T>(1.4426950408889634));
+  return Mul(FastLog(d, x), kInvLn2);
+}
+
+/**
+ * Fast approximation of log10(x).
+ *
+ * Valid Lane Types: float32, float64
+ * Max Relative Error: 0.061%
+ * Valid Range: float32: (0, +FLT_MAX]
+ *              float64: (0, +DBL_MAX]
+ *
+ * @return base 10 logarithm of 'x'
+ */
+template <class D, class V>
+HWY_INLINE V FastLog10(D d, V x) {
+  using T = TFromD<D>;
+  const auto kInvLn10 = Set(d, static_cast<T>(0.4342944819032518));
+  return Mul(FastLog(d, x), kInvLn10);
+}
+
 template <class D, class V>
 HWY_NOINLINE V CallFastAtan(const D d, VecArg<V> x) {
   return FastAtan(d, x);
@@ -958,6 +992,15 @@ HWY_NOINLINE V CallFastLog(const D d, VecArg<V> x) {
 template <class D, class V>
 HWY_NOINLINE V CallFastExp(const D d, VecArg<V> x) {
   return FastExp(d, x);
+}
+template <class D, class V>
+HWY_NOINLINE V CallFastLog2(const D d, VecArg<V> x) {
+  return FastLog2(d, x);
+}
+
+template <class D, class V>
+HWY_NOINLINE V CallFastLog10(const D d, VecArg<V> x) {
+  return FastLog10(d, x);
 }
 
 }  // namespace HWY_NAMESPACE

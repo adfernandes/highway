@@ -279,11 +279,13 @@ struct TestFastLog {
     const double max_relative_error = 0.0007;
     const uint64_t samples = 1000000;
     if (sizeof(T) == 4) {
-      TestMathRelative<T, D>("FastLog", std::log, CallFastLog, d, static_cast<T>(FLT_MIN),
-                             static_cast<T>(FLT_MAX), max_relative_error, samples);
+      TestMathRelative<T, D>("FastLog", std::log, CallFastLog, d,
+                             static_cast<T>(FLT_MIN), static_cast<T>(FLT_MAX),
+                             max_relative_error, samples);
     } else {
-      TestMathRelative<T, D>("FastLog", std::log, CallFastLog, d, static_cast<T>(DBL_MIN),
-                             static_cast<T>(DBL_MAX), max_relative_error, samples);
+      TestMathRelative<T, D>("FastLog", std::log, CallFastLog, d,
+                             static_cast<T>(DBL_MIN), static_cast<T>(DBL_MAX),
+                             max_relative_error, samples);
     }
   }
 };
@@ -318,12 +320,54 @@ struct TestFastExp {
   }
 };
 
+struct TestFastLog2 {
+  template <class T, class D>
+  HWY_NOINLINE void operator()(T, D d) {
+    const double max_relative_error = 0.0007;
+    const uint64_t samples = 1000000;
+    if (sizeof(T) == 4) {
+      TestMathRelative<T, D>("FastLog2", std::log2, CallFastLog2, d,
+                             static_cast<T>(FLT_MIN), static_cast<T>(FLT_MAX),
+                             max_relative_error, samples);
+    } else {
+      TestMathRelative<T, D>("FastLog2", std::log2, CallFastLog2, d,
+                             static_cast<T>(DBL_MIN), static_cast<T>(DBL_MAX),
+                             max_relative_error, samples);
+    }
+  }
+};
+
+struct TestFastLog10 {
+  template <class T, class D>
+  HWY_NOINLINE void operator()(T, D d) {
+    const double max_relative_error = 0.0007;
+    const uint64_t samples = 1000000;
+    if (sizeof(T) == 4) {
+      TestMathRelative<T, D>("FastLog10", std::log10, CallFastLog10, d,
+                             static_cast<T>(FLT_MIN), static_cast<T>(FLT_MAX),
+                             max_relative_error, samples);
+    } else {
+      TestMathRelative<T, D>("FastLog10", std::log10, CallFastLog10, d,
+                             static_cast<T>(DBL_MIN), static_cast<T>(DBL_MAX),
+                             max_relative_error, samples);
+    }
+  }
+};
+
 HWY_NOINLINE void TestAllFastExp() {
   ForFloat3264Types(ForPartialVectors<TestFastExp>());
 }
 
 HWY_NOINLINE void TestAllFastLog() {
   ForFloat3264Types(ForPartialVectors<TestFastLog>());
+}
+
+HWY_NOINLINE void TestAllFastLog2() {
+  ForFloat3264Types(ForPartialVectors<TestFastLog2>());
+}
+
+HWY_NOINLINE void TestAllFastLog10() {
+  ForFloat3264Types(ForPartialVectors<TestFastLog10>());
 }
 
 }  // namespace
@@ -345,6 +389,8 @@ HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllLog1p);
 HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllLog2);
 HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllFastLog);
 HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllFastExp);
+HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllFastLog2);
+HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllFastLog10);
 HWY_AFTER_TEST();
 }  // namespace
 }  // namespace hwy
