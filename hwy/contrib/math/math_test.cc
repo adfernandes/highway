@@ -371,6 +371,23 @@ struct TestFastLog10 {
   }
 };
 
+struct TestFastLog1p {
+  template <class T, class D>
+  HWY_NOINLINE void operator()(T, D d) {
+    const double max_relative_error = 0.0007;
+    const uint64_t samples = 1000000;
+    if (sizeof(T) == 4) {
+      TestMathRelative<T, D>("FastLog1p", std::log1p, CallFastLog1p, d,
+                             static_cast<T>(-0.9f), static_cast<T>(FLT_MAX),
+                             max_relative_error, samples);
+    } else {
+      TestMathRelative<T, D>("FastLog1p", std::log1p, CallFastLog1p, d,
+                             static_cast<T>(-0.9), static_cast<T>(DBL_MAX),
+                             max_relative_error, samples);
+    }
+  }
+};
+
 HWY_NOINLINE void TestAllFastExp() {
   ForFloat3264Types(ForPartialVectors<TestFastExp>());
 }
@@ -389,6 +406,10 @@ HWY_NOINLINE void TestAllFastLog2() {
 
 HWY_NOINLINE void TestAllFastLog10() {
   ForFloat3264Types(ForPartialVectors<TestFastLog10>());
+}
+
+HWY_NOINLINE void TestAllFastLog1p() {
+  ForFloat3264Types(ForPartialVectors<TestFastLog1p>());
 }
 
 }  // namespace
@@ -413,6 +434,7 @@ HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllFastExp);
 HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllFastExpMinusOrZero);
 HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllFastLog2);
 HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllFastLog10);
+HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllFastLog1p);
 HWY_AFTER_TEST();
 }  // namespace
 }  // namespace hwy

@@ -1028,6 +1028,29 @@ HWY_INLINE V FastLog10(D d, V x) {
   return Mul(FastLog(d, x), kInvLn10);
 }
 
+/**
+ * Fast approximation of log(1 + x).
+ *
+ * Valid Lane Types: float32, float64
+ * Valid Range: float32: [-1 + epsilon, +FLT_MAX]
+ *              float64: [-1 + epsilon, +DBL_MAX]
+ *
+ * @return natural logarithm of '1 + x'
+ */
+template <class D, class V>
+HWY_INLINE V FastLog1p(const D d, V x) {
+  using T = TFromD<D>;
+  const V kOne = Set(d, static_cast<T>(+1.0));
+
+  const V y = Add(x, kOne);
+  const Mask<D> not_pole = Ne(y, kOne);
+  // If y == 1, divisor becomes -1 (dummy), avoiding division by zero.
+  const V kMinusOne = Set(d, static_cast<T>(-1.0));
+  const V divisor = MaskedSubOr(kMinusOne, not_pole, y, kOne);
+  const V non_pole = Mul(FastLog(d, y), Div(x, divisor));
+  return IfThenElse(not_pole, non_pole, x);
+}
+
 template <class D, class V>
 HWY_NOINLINE V CallFastAtan(const D d, VecArg<V> x) {
   return FastAtan(d, x);
@@ -1070,6 +1093,11 @@ HWY_NOINLINE V CallFastLog2(const D d, VecArg<V> x) {
 template <class D, class V>
 HWY_NOINLINE V CallFastLog10(const D d, VecArg<V> x) {
   return FastLog10(d, x);
+}
+
+template <class D, class V>
+HWY_NOINLINE V CallFastLog1p(const D d, VecArg<V> x) {
+  return FastLog1p(d, x);
 }
 
 }  // namespace HWY_NAMESPACE
