@@ -931,6 +931,70 @@ HWY_INLINE V FastExp(D d, V x) {
 }
 
 /**
+ * Fast approximation of exp(x) for x <= 0.
+ *
+ * Valid Lane Types: float32, float64
+ * Max ULP Error: 1 for float32 [-FLT_MAX, -87]
+ * Max ULP Error: 1 for float64 [-DBL_MAX, -708]
+ * Max Relative Error: 0.06% for float32 [-87, 0]
+ * Max Relative Error: 0.06% for float64 [-708, 0]
+ * Average Relative Error: 0.05% for float32 [-87, 0]
+ * Average Relative Error: 0.06% for float64 [-708, 0]
+ * Valid Range: float32[-FLT_MAX, +0.0], float64[-DBL_MAX, +0.0]
+ *
+ * @return e^x
+ */
+template <class D, class V>
+HWY_INLINE V FastExpMinusOrZero(D d, V x) {
+  using T = TFromD<D>;
+  impl::FastExpImpl<T> impl;
+
+  const V kHalfMinus = Set(d, static_cast<T>(-0.5));
+  const V kLowerBound =
+      Set(d, static_cast<T>((sizeof(T) == 4 ? -88.0 : -709.0)));
+
+  const V kOneOverLog2 = Set(d, static_cast<T>(+1.442695040888963407359924681));
+
+  // Optimization for x <= 0:
+  // FastExp computes `rounded_offs = sign(x) ? -0.5 : 0.5` to round the
+  // multiplied argument towards zero. Since x <= 0, we avoid the dynamic
+  // calculation and simply use a constant -0.5 (kHalfMinus).
+  const auto q = impl.ToInt32(d, MulAdd(x, kOneOverLog2, kHalfMinus));
+
+  // Reduce
+  const auto x_red = impl.ExpReduce(d, x, q);
+
+  // New logic:
+  // x_in = |x_red| / 2 -> absorbed into coefficients
+  // if x_red < 0: swap num/den
+
+  auto y = Abs(x_red);
+
+  const auto a = Set(d, static_cast<T>(-1757.05));
+  const auto b = Set(d, static_cast<T>(-3128.2));
+  const auto c = Set(d, static_cast<T>(1406.95));
+  const auto d_coef = Set(d, static_cast<T>(-3130.2));
+
+  // res = (Ay + B) / (Cy + D)
+  auto num = MulAdd(a, y, b);
+  auto den = MulAdd(c, y, d_coef);
+
+  // If x_red < 0, swap num/den
+  auto final_num = IfNegativeThenElse(x_red, den, num);
+  auto final_den = IfNegativeThenElse(x_red, num, den);
+
+  auto approx = Div(final_num, final_den);
+
+  // Since inputs < -88.0 (f32) and < -709.0 (f64) are flushed to zero,
+  // we do not generate subnormals. Therefore, q is guaranteed to be >= -127
+  // and we can use Pow2I directly without splitting the exponent computation.
+  const V res = Mul(approx, impl.Pow2I(d, q));
+
+  // Handle underflow
+  return IfThenElseZero(Ge(x, kLowerBound), res);
+}
+
+/**
  * Fast approximation of log2(x).
  *
  * Valid Lane Types: float32, float64
@@ -992,6 +1056,11 @@ HWY_NOINLINE V CallFastLog(const D d, VecArg<V> x) {
 template <class D, class V>
 HWY_NOINLINE V CallFastExp(const D d, VecArg<V> x) {
   return FastExp(d, x);
+}
+
+template <class D, class V>
+HWY_NOINLINE V CallFastExpMinusOrZero(const D d, VecArg<V> x) {
+  return FastExpMinusOrZero(d, x);
 }
 template <class D, class V>
 HWY_NOINLINE V CallFastLog2(const D d, VecArg<V> x) {

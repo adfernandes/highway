@@ -320,6 +320,23 @@ struct TestFastExp {
   }
 };
 
+struct TestFastExpMinusOrZero {
+  template <class T, class D>
+  HWY_NOINLINE void operator()(T, D d) {
+    if (sizeof(T) == 4) {
+      // Float Normal Range: [-87.0, 0.0]
+      TestMathRelative<T, D>("FastExpMinusOrZeroNormal", std::exp,
+                             CallFastExpMinusOrZero, d, static_cast<T>(-87.0),
+                             static_cast<T>(-0.0), 0.0007, 1e7);
+    } else {
+      // Double Normal Range: [-708.0, 0.0]
+      TestMathRelative<T, D>("FastExpMinusOrZeroNormal", std::exp,
+                             CallFastExpMinusOrZero, d, static_cast<T>(-708.0),
+                             static_cast<T>(-0.0), 0.0007, 1e7);
+    }
+  }
+};
+
 struct TestFastLog2 {
   template <class T, class D>
   HWY_NOINLINE void operator()(T, D d) {
@@ -358,6 +375,10 @@ HWY_NOINLINE void TestAllFastExp() {
   ForFloat3264Types(ForPartialVectors<TestFastExp>());
 }
 
+HWY_NOINLINE void TestAllFastExpMinusOrZero() {
+  ForFloat3264Types(ForPartialVectors<TestFastExpMinusOrZero>());
+}
+
 HWY_NOINLINE void TestAllFastLog() {
   ForFloat3264Types(ForPartialVectors<TestFastLog>());
 }
@@ -389,6 +410,7 @@ HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllLog1p);
 HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllLog2);
 HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllFastLog);
 HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllFastExp);
+HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllFastExpMinusOrZero);
 HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllFastLog2);
 HWY_EXPORT_AND_TEST_P(HwyMathTest, TestAllFastLog10);
 HWY_AFTER_TEST();
