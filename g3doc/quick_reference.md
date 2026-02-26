@@ -2903,6 +2903,10 @@ The following are DEPRECATED in favor of `HWY_MIN_BYTES`:
 *   `HWY_CAP_GE256`: the current target supports vectors of >= 256 bits.
 *   `HWY_CAP_GE512`: the current target supports vectors of >= 512 bits.
 
+*   `HWY_ARCH_MAX_BYTES` is an upper bound on `HWY_MAX_BYTES` for any target on
+    the current arch. Unlike the other macros in this section, this is valid
+    across targets, and is defined by base.h instead of requiring highway.h.
+
 ## Detecting supported targets
 
 `SupportedTargets()` returns a non-cached (re-initialized on each call) bitfield

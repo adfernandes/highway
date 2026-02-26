@@ -359,6 +359,20 @@
 #error "Must not detect more than one architecture"
 #endif
 
+#if HWY_ARCH_RISCV
+#define HWY_ARCH_MAX_BYTES 65536
+#elif HWY_ARCH_ARM_A64
+#define HWY_ARCH_MAX_BYTES 256
+#elif HWY_ARCH_X86
+#define HWY_ARCH_MAX_BYTES 64
+#elif HWY_ARCH_WASM || HWY_ARCH_LOONGARCH
+#define HWY_ARCH_MAX_BYTES 32
+#elif HWY_ARCH_PPC || HWY_ARCH_S390X || HWY_ARCH_ARM_V7 || HWY_ARCH_ARM_OLD
+#define HWY_ARCH_MAX_BYTES 16
+#else
+#error "Missing case for HWY_ARCH_*"
+#endif
+
 //------------------------------------------------------------------------------
 // Operating system
 
