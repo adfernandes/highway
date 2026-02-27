@@ -352,10 +352,17 @@
 #define HWY_ARCH_LOONGARCH 0
 #endif
 
+#if defined(__hexagon__) || defined(__HEXAGON_ARCH__)
+#define HWY_ARCH_HEXAGON 1
+#else
+#define HWY_ARCH_HEXAGON 0
+#endif
+
 // It is an error to detect multiple architectures at the same time, but OK to
 // detect none of the above.
-#if (HWY_ARCH_X86 + HWY_ARCH_PPC + HWY_ARCH_ARM + HWY_ARCH_ARM_OLD + \
-     HWY_ARCH_WASM + HWY_ARCH_RISCV + HWY_ARCH_S390X + HWY_ARCH_LOONGARCH) > 1
+#if (HWY_ARCH_X86 + HWY_ARCH_PPC + HWY_ARCH_ARM + HWY_ARCH_ARM_OLD +        \
+     HWY_ARCH_WASM + HWY_ARCH_RISCV + HWY_ARCH_S390X + HWY_ARCH_LOONGARCH + \
+     HWY_ARCH_HEXAGON) > 1
 #error "Must not detect more than one architecture"
 #endif
 
@@ -363,6 +370,8 @@
 #define HWY_ARCH_MAX_BYTES 65536
 #elif HWY_ARCH_ARM_A64
 #define HWY_ARCH_MAX_BYTES 256
+#elif HWY_ARCH_HEXAGON
+#define HWY_ARCH_MAX_BYTES 128
 #elif HWY_ARCH_X86
 #define HWY_ARCH_MAX_BYTES 64
 #elif HWY_ARCH_WASM || HWY_ARCH_LOONGARCH
