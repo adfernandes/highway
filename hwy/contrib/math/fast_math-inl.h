@@ -1051,6 +1051,20 @@ HWY_INLINE V FastLog1p(const D d, V x) {
   return IfThenElse(not_pole, non_pole, x);
 }
 
+/**
+ * Fast approximation of base^exp.
+ *
+ * Valid Lane Types: float32, float64
+ * Valid Range: float32: base in (0, +FLT_MAX], exp * log(base) in [-25.0, +25.0]
+ *              float64: base in (0, +DBL_MAX], exp * log(base) in [-25.0, +25.0]
+ * Max Relative Error for Valid Range: float32 : 0.27%, float64 : 0.22%
+ * @return base^exp
+ */
+template <class D, class V>
+HWY_INLINE V FastPow(D d, V base, V exp) {
+  return FastExp(d, Mul(exp, FastLog(d, base)));
+}
+
 template <class D, class V>
 HWY_NOINLINE V CallFastAtan(const D d, VecArg<V> x) {
   return FastAtan(d, x);
@@ -1100,6 +1114,10 @@ HWY_NOINLINE V CallFastLog1p(const D d, VecArg<V> x) {
   return FastLog1p(d, x);
 }
 
+template <class D, class V>
+HWY_NOINLINE V CallFastPow(const D d, VecArg<V> base, VecArg<V> exp) {
+  return FastPow(d, base, exp);
+}
 }  // namespace HWY_NAMESPACE
 }  // namespace hwy
 HWY_AFTER_NAMESPACE();
