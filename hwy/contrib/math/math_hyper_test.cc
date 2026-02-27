@@ -231,6 +231,8 @@ HWY_NOINLINE void TestMathRelative(const char* name, T (*fx1)(T),
   }
 
   double max_actual_rel_error = 0.0;
+  double sum_rel_error = 0.0;
+  uint64_t count = 0;
   // Emulation is slower, so cannot afford as many.
   const UintT kSamplesPerRange =
   static_cast<UintT>(AdjustedReps(static_cast<size_t>(samples)));
@@ -258,6 +260,8 @@ HWY_NOINLINE void TestMathRelative(const char* name, T (*fx1)(T),
                               static_cast<double>(expected)) /
                      std::abs(static_cast<double>(expected));
         max_actual_rel_error = HWY_MAX(max_actual_rel_error, rel);
+        sum_rel_error += rel;
+        count++;
         if (rel > max_relative_error) {
           static int print_count = 0;
           if (print_count < 10) {
@@ -274,13 +278,19 @@ HWY_NOINLINE void TestMathRelative(const char* name, T (*fx1)(T),
   }
   fprintf(stderr, "%s: %s max_rel_error %E\n",
           hwy::TypeName(T(), Lanes(d)).c_str(), name, max_actual_rel_error);
+  if (count > 0) {
+    fprintf(stderr, "%s: %s avg_rel_error %E\n",
+            hwy::TypeName(T(), Lanes(d)).c_str(), name,
+            sum_rel_error / static_cast<double>(count));
+  }
   HWY_ASSERT(max_actual_rel_error <= max_relative_error);
 }
 
 struct TestFastTanh {
   template <class T, class D>
   HWY_NOINLINE void operator()(T, D d) {
-    const double max_relative_error = 0.0015;
+    const double max_relative_error_float = 0.0009;
+    const double max_relative_error_double = 0.0009;
     const double max_relative_error_small = 0.00005;
     const uint64_t samples = 1000000;
     const uint64_t samples_small = 10000;
@@ -290,11 +300,11 @@ struct TestFastTanh {
     if (sizeof(T) == 4) {
       TestMathRelative<T, D>("FastTanh Float", std::tanh, CallFastTanh, d,
                              static_cast<T>(-1e35), static_cast<T>(1e35),
-                             max_relative_error, samples);
+                             max_relative_error_float, samples);
     } else {
       TestMathRelative<T, D>("FastTanh Double", std::tanh, CallFastTanh, d,
                              static_cast<T>(-1e305), static_cast<T>(1e305),
-                             max_relative_error, samples);
+                             max_relative_error_double, samples);
     }
   }
 };
