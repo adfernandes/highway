@@ -862,10 +862,10 @@ HWY_INLINE V FastLog(D d, V x) {
  * Valid Lane Types: float32, float64
  * Max ULP Error: 1 for float32 [-FLT_MAX, -87]
  * Max ULP Error: 1 for float64 [-DBL_MAX, -708]
- * Max Relative Error: 0.06% for float32 [-87, 88]
- * Max Relative Error: 0.06% for float64 [-708, 706]
- * Average Relative Error: 0.05% for float32 [-87, 88]
- * Average Relative Error: 0.06% for float64 [-708, 706]
+ * Max Relative Error: 0.0007% for float32 [-87, 88]
+ * Max Relative Error: 0.0007% for float64 [-708, 706]
+ * Average Relative Error: 0.00002% for float32 [-87, 88]
+ * Average Relative Error: 0.00001% for float64 [-708, 706]
  * Valid Range: float32[-FLT_MAX, +88], float64[-DBL_MAX, +706]
  *
  * @return e^x
@@ -889,40 +889,26 @@ HWY_INLINE V FastExp(D d, V x) {
 
   const auto q = impl.ToInt32(d, MulAdd(x, kOneOverLog2, rounded_offs));
 
-  // Reduce
   const auto x_red = impl.ExpReduce(d, x, q);
 
-  // Approximation derived from tanh(x) = (e^2x - 1) / (e^2x + 1), which implies
-  // e^2x = (1 + tanh(x)) / (1 - tanh(x)).
-  // Let X = 2x. Then e^X = (1 + tanh(X/2)) / (1 - tanh(X/2)).
-  //
-  // We approximate tanh(x) as (ax + b) / (cx + d).
-  // Substituting x = X/2 and simplifying yields a rational approximation for
-  // e^X: e^X ~= (A*X + B) / (C*X + D), where: A = (a + c)/2, B = b + d, C = (c
-  // - a)/2, D = d - b.
-  //
-  // ExpReduce constrains X to [-ln(2)/2, ln(2)/2] ~= [-0.346, 0.346].
-  // The range is further halved because x = X/2.
-  // This small range allows a single set of coefficients to be sufficiently
-  // accurate. For X < 0, we swap the numerator and denominator because
-  // e^-X = 1 / e^X.
+  // Degree 4 polynomial approximation of e^x on [-ln2/2, ln2/2]
+  // Generated via Caratheodory-Fejer approximation.
+  const auto c0 = Set(d, static_cast<T>(1.0000001510806224569));
+  const auto c1 = Set(d, static_cast<T>(0.99996228117046825901));
+  const auto c2 = Set(d, static_cast<T>(0.49998365704575670199));
+  const auto c3 = Set(d, static_cast<T>(0.16792157982876812494));
+  const auto c4 = Set(d, static_cast<T>(0.041959439862987071845));
 
-  auto y = Abs(x_red);
-
-  const auto a = Set(d, static_cast<T>(-1757.05));
-  const auto b = Set(d, static_cast<T>(-3128.2));
-  const auto c = Set(d, static_cast<T>(1406.95));
-  const auto d_coef = Set(d, static_cast<T>(-3130.2));
-
-  // res = (Ay + B) / (Cy + D)
-  auto num = MulAdd(a, y, b);
-  auto den = MulAdd(c, y, d_coef);
-
-  // If x_red < 0, swap num/den
-  auto final_num = IfNegativeThenElse(x_red, den, num);
-  auto final_den = IfNegativeThenElse(x_red, num, den);
-
-  auto approx = Div(final_num, final_den);
+  // Estrin's scheme
+  const auto x2 = Mul(x_red, x_red);
+  // term0 = c1*x + c0
+  const auto term0 = MulAdd(c1, x_red, c0);
+  // term1 = c3*x + c2
+  const auto term1 = MulAdd(c3, x_red, c2);
+  // term2 = c4*x^2 + term1
+  const auto term2 = MulAdd(c4, x2, term1);
+  // approx = term2 * x^2 + term0
+  const auto approx = MulAdd(term2, x2, term0);
 
   const V res = impl.LoadExpShortRange(d, approx, q);
 
@@ -936,10 +922,10 @@ HWY_INLINE V FastExp(D d, V x) {
  * Valid Lane Types: float32, float64
  * Max ULP Error: 1 for float32 [-FLT_MAX, -87]
  * Max ULP Error: 1 for float64 [-DBL_MAX, -708]
- * Max Relative Error: 0.06% for float32 [-87, 0]
- * Max Relative Error: 0.06% for float64 [-708, 0]
- * Average Relative Error: 0.05% for float32 [-87, 0]
- * Average Relative Error: 0.06% for float64 [-708, 0]
+ * Max Relative Error: 0.0007% for float32 [-87, 0]
+ * Max Relative Error: 0.0007% for float64 [-708, 0]
+ * Average Relative Error: 0.00002% for float32 [-87, 0]
+ * Average Relative Error: 0.00001% for float64 [-708, 0]
  * Valid Range: float32[-FLT_MAX, +0.0], float64[-DBL_MAX, +0.0]
  *
  * @return e^x
@@ -959,39 +945,38 @@ HWY_INLINE V FastExpMinusOrZero(D d, V x) {
   // FastExp computes `rounded_offs = sign(x) ? -0.5 : 0.5` to round the
   // multiplied argument towards zero. Since x <= 0, we avoid the dynamic
   // calculation and simply use a constant -0.5 (kHalfMinus).
-  const auto q = impl.ToInt32(d, MulAdd(x, kOneOverLog2, kHalfMinus));
+  //
+  // We clamp x to be >= kLowerBound. For x < kLowerBound, the remapped
+  // exponent q becomes -127 (f32) or -1023 (f64), which Pow2I converts to
+  // exactly 0.0. This avoids subnormals and the need for a final mask.
+  const auto x_clamped = Max(x, kLowerBound);
+  const auto q = impl.ToInt32(d, MulAdd(x_clamped, kOneOverLog2, kHalfMinus));
 
-  // Reduce
-  const auto x_red = impl.ExpReduce(d, x, q);
+  const auto x_red = impl.ExpReduce(d, x_clamped, q);
 
-  // New logic:
-  // x_in = |x_red| / 2 -> absorbed into coefficients
-  // if x_red < 0: swap num/den
+  // Degree 4 polynomial approximation of e^x on [-ln2/2, ln2/2]
+  // Generated via Caratheodory-Fejer approximation.
+  const auto c0 = Set(d, static_cast<T>(1.0000001510806224569));
+  const auto c1 = Set(d, static_cast<T>(0.99996228117046825901));
+  const auto c2 = Set(d, static_cast<T>(0.49998365704575670199));
+  const auto c3 = Set(d, static_cast<T>(0.16792157982876812494));
+  const auto c4 = Set(d, static_cast<T>(0.041959439862987071845));
 
-  auto y = Abs(x_red);
-
-  const auto a = Set(d, static_cast<T>(-1757.05));
-  const auto b = Set(d, static_cast<T>(-3128.2));
-  const auto c = Set(d, static_cast<T>(1406.95));
-  const auto d_coef = Set(d, static_cast<T>(-3130.2));
-
-  // res = (Ay + B) / (Cy + D)
-  auto num = MulAdd(a, y, b);
-  auto den = MulAdd(c, y, d_coef);
-
-  // If x_red < 0, swap num/den
-  auto final_num = IfNegativeThenElse(x_red, den, num);
-  auto final_den = IfNegativeThenElse(x_red, num, den);
-
-  auto approx = Div(final_num, final_den);
+  // Estrin's scheme
+  const auto x2 = Mul(x_red, x_red);
+  // term0 = c1*x + c0
+  const auto term0 = MulAdd(c1, x_red, c0);
+  // term1 = c3*x + c2
+  const auto term1 = MulAdd(c3, x_red, c2);
+  // term2 = c4*x^2 + term1
+  const auto term2 = MulAdd(c4, x2, term1);
+  // approx = term2 * x^2 + term0
+  const auto approx = MulAdd(term2, x2, term0);
 
   // Since inputs < -88.0 (f32) and < -709.0 (f64) are flushed to zero,
   // we do not generate subnormals. Therefore, q is guaranteed to be >= -127
   // and we can use Pow2I directly without splitting the exponent computation.
-  const V res = Mul(approx, impl.Pow2I(d, q));
-
-  // Handle underflow
-  return IfThenElseZero(Ge(x, kLowerBound), res);
+  return Mul(approx, impl.Pow2I(d, q));
 }
 
 /**

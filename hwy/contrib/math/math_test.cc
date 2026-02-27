@@ -223,6 +223,8 @@ HWY_NOINLINE void TestMathRelative(const char* name, T (*fx1)(T),
 
   double max_actual_rel_error = 0.0;
   double max_error_value = 0.0;
+  double sum_rel_error = 0.0;
+  uint64_t count = 0;
   // Emulation is slower, so cannot afford as many.
   const UintT kSamplesPerRange =
       static_cast<UintT>(AdjustedReps(static_cast<size_t>(samples)));
@@ -253,6 +255,8 @@ HWY_NOINLINE void TestMathRelative(const char* name, T (*fx1)(T),
           max_actual_rel_error = rel;
           max_error_value = static_cast<double>(value);
         }
+        sum_rel_error += rel;
+        count++;
         if (rel > max_relative_error) {
           static int print_count = 0;
           if (print_count < 10) {
@@ -270,6 +274,11 @@ HWY_NOINLINE void TestMathRelative(const char* name, T (*fx1)(T),
   fprintf(stderr, "%s: %s max_rel_error %E at %E\n",
           hwy::TypeName(T(), Lanes(d)).c_str(), name, max_actual_rel_error,
           max_error_value);
+  if (count > 0) {
+    fprintf(stderr, "%s: %s avg_rel_error %E\n",
+            hwy::TypeName(T(), Lanes(d)).c_str(), name,
+            sum_rel_error / static_cast<double>(count));
+  }
   HWY_ASSERT(max_actual_rel_error <= max_relative_error);
 }
 
@@ -298,7 +307,7 @@ struct TestFastExp {
       // exp(-87) ~= 1.6e-38 (just above min normal 1.17e-38)
       TestMathRelative<T, D>("FastExpNormal", std::exp, CallFastExp, d,
                              static_cast<T>(-87.0), static_cast<T>(88.0),
-                             0.0007, 1e7);
+                             0.000008, 1e7);
 
       // Float Subnormal Range: [-104.0, -87.0]
       // exp(-104) is close to 0. Error is dominated by quantization (1 ULP ~=
@@ -310,7 +319,7 @@ struct TestFastExp {
       // exp(-708) ~= 2.2e-308 (min normal 2.22e-308)
       TestMathRelative<T, D>("FastExpNormal", std::exp, CallFastExp, d,
                              static_cast<T>(-708.0), static_cast<T>(706.0),
-                             0.0007, 1e7);
+                             0.000008, 1e7);
 
       // Double Subnormal Range: [-744.0, -708.0]
       // exp(-744) is very small. Quantization error is expected.
@@ -327,12 +336,12 @@ struct TestFastExpMinusOrZero {
       // Float Normal Range: [-87.0, 0.0]
       TestMathRelative<T, D>("FastExpMinusOrZeroNormal", std::exp,
                              CallFastExpMinusOrZero, d, static_cast<T>(-87.0),
-                             static_cast<T>(-0.0), 0.0007, 1e7);
+                             static_cast<T>(-0.0), 0.000008, 1e7);
     } else {
       // Double Normal Range: [-708.0, 0.0]
       TestMathRelative<T, D>("FastExpMinusOrZeroNormal", std::exp,
                              CallFastExpMinusOrZero, d, static_cast<T>(-708.0),
-                             static_cast<T>(-0.0), 0.0007, 1e7);
+                             static_cast<T>(-0.0), 0.000008, 1e7);
     }
   }
 };
