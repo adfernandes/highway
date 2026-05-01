@@ -174,7 +174,7 @@ HWY_TEST_DLLEXPORT void AssertArrayEqual(const TypeInfo& info,
 }  // namespace detail
 
 #if HWY_ARCH_ARM_A64 && \
-    (HWY_COMPILER_GCC_ACTUAL && HWY_COMPILER_GCC_ACTUAL < 1600)
+    (HWY_COMPILER_GCC_ACTUAL && HWY_COMPILER_GCC_ACTUAL < 1700)
 // The N argument to TypeName from Lanes() is a "poly constant" which triggers
 // a GCC bug that can be worked around by disabling cloning. See #2813.
 #define HWY_TYPENAME_ATTR __attribute__((noclone))
