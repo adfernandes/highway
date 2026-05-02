@@ -1584,8 +1584,8 @@ HWY_INLINE V Cbrt(const D d, V x) {
   // Newton iteration for 1/cbrt(x): r = r * (4/3 - (x/3) * r^3).
   for (size_t i = 0; i < kIters; ++i) {
     const V r2 = Mul(r, r);
-    const V r3 = Mul(r2, r);
-    r = Mul(r, NegMulAdd(x_div_3, r3, kFourThirds));
+    const V x_div_3_r = Mul(x_div_3, r);
+    r = Mul(r, NegMulAdd(x_div_3_r, r2, kFourThirds));
   }
 
   // Fused finalizer: y = r*r*x * (5/3 - (2/3) * r*r*r*x).
