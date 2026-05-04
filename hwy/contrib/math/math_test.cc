@@ -427,7 +427,7 @@ struct TestFastLog2 {
 struct TestFastLog10 {
   template <class T, class D>
   HWY_NOINLINE void operator()(T, D d) {
-    const double max_relative_error = 0.000082;
+    const double max_relative_error = 1.15E-5;
     const uint64_t samples = 1000000;
     if (sizeof(T) == 4) {
       TestMathRelative<T, D>("FastLog10", std::log10, CallFastLog10, d,
@@ -452,7 +452,7 @@ struct TestFastLog10 {
 struct TestFastLog1p {
   template <class T, class D>
   HWY_NOINLINE void operator()(T, D d) {
-    const double max_relative_error = 0.00009;
+    const double max_relative_error = 1.15E-5;
     const uint64_t samples = 1000000;
     if (sizeof(T) == 4) {
       TestMathRelative<T, D>("FastLog1p", std::log1p, CallFastLog1p, d,
