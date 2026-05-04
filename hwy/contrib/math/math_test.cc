@@ -402,7 +402,7 @@ struct TestFastExpMinusOrZero {
 struct TestFastLog2 {
   template <class T, class D>
   HWY_NOINLINE void operator()(T, D d) {
-    const double max_relative_error = 0.000082;
+    const double max_relative_error = 1.15E-5;
     const uint64_t samples = 1000000;
     if (sizeof(T) == 4) {
       TestMathRelative<T, D>("FastLog2", std::log2, CallFastLog2, d,
