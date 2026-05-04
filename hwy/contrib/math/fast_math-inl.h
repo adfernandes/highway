@@ -229,11 +229,9 @@ HWY_INLINE V FastTan(D d, V x) {
   V x_red, sign;
   impl::ReduceAngleTan(d, x, x_red, sign);
 
-  constexpr size_t kLanes = HWY_MAX_LANES_D(D);
   V b, c, d_val;
 
-  if constexpr ((kLanes >= 4 && !HWY_HAVE_SCALABLE) ||
-                (HWY_HAVE_SCALABLE && sizeof(T) == 4 && detail::IsFull(d))) {
+  if constexpr (CanLookup8(d)) {
     // --- Table Lookup ---
     const auto scale = Set(d, static_cast<T>(3.8197186342));
     auto idx_float = Floor(Mul(x_red, scale));
@@ -525,7 +523,6 @@ HWY_INLINE V FastTanh(D d, V val) {
   // Abs(val) and preserve sign for later
   auto y = Abs(val);
 
-  constexpr size_t kLanes = HWY_MAX_LANES_D(D);
   V a, b, c, d_val, e, f;
 
   const auto t0 = Set(d, static_cast<T>(0.168236118310606));
@@ -536,8 +533,7 @@ HWY_INLINE V FastTanh(D d, V val) {
   const auto t5 = Set(d, static_cast<T>(2.969315202883957));
   const auto t6 = Set(d, static_cast<T>(4.734657601441978));
 
-  if constexpr ((kLanes >= 4 && !HWY_HAVE_SCALABLE) ||
-                (HWY_HAVE_SCALABLE && sizeof(T) == 4 && detail::IsFull(d))) {
+  if constexpr (CanLookup8(d)) {
     using DI = RebindToSigned<D>;
     auto idx_i = Zero(DI());
     const auto one_i = Set(DI(), 1);
@@ -919,7 +915,6 @@ HWY_INLINE V FastLog(D d, V x) {
   V y, exp;
   impl::FastLogRangeReduction<kHandleSubnormals>(d, x, y, exp);
 
-  constexpr size_t kLanes = HWY_MAX_LANES_D(D);
   V approx;
 
   V a, b, c, d_val;
@@ -928,8 +923,7 @@ HWY_INLINE V FastLog(D d, V x) {
   // log(y) directly.
   const V z = Sub(y, Set(d, static_cast<T>(1.0)));
 
-  if constexpr ((kLanes >= 4 && !HWY_HAVE_SCALABLE) ||
-                (HWY_HAVE_SCALABLE && sizeof(T) == 4 && detail::IsFull(d))) {
+  if constexpr (CanLookup8(d)) {
     // --- Table Lookup ---
     const auto scale = Set(d, static_cast<T>(11.3137085));
     // Input is always non-negative, so Floor() + ConvertTo()
@@ -1390,7 +1384,6 @@ HWY_INLINE V FastLog2(D d, V x) {
   V y, exp;
   impl::FastLogRangeReduction<kHandleSubnormals>(d, x, y, exp);
 
-  constexpr size_t kLanes = HWY_MAX_LANES_D(D);
   V approx;
 
   V a, b, c, d_val;
@@ -1399,8 +1392,7 @@ HWY_INLINE V FastLog2(D d, V x) {
   // log(y) directly.
   const V z = Sub(y, Set(d, static_cast<T>(1.0)));
 
-  if constexpr ((kLanes >= 4 && !HWY_HAVE_SCALABLE) ||
-                (HWY_HAVE_SCALABLE && sizeof(T) == 4 && detail::IsFull(d))) {
+  if constexpr (CanLookup8(d)) {
     // --- Table Lookup ---
     const auto scale = Set(d, static_cast<T>(11.3137085));
     auto idx_i = ConvertInRangeTo(
@@ -1628,7 +1620,6 @@ HWY_INLINE V FastLog10(D d, V x) {
   V y, exp;
   impl::FastLogRangeReduction<kHandleSubnormals>(d, x, y, exp);
 
-  constexpr size_t kLanes = HWY_MAX_LANES_D(D);
   V approx;
 
   V a, b, c, d_val;
@@ -1637,8 +1628,7 @@ HWY_INLINE V FastLog10(D d, V x) {
   // log(y) directly.
   const V z = Sub(y, Set(d, static_cast<T>(1.0)));
 
-  if constexpr ((kLanes >= 4 && !HWY_HAVE_SCALABLE) ||
-                (HWY_HAVE_SCALABLE && sizeof(T) == 4 && detail::IsFull(d))) {
+  if constexpr (CanLookup8(d)) {
     // --- Table Lookup ---
     const auto scale = Set(d, static_cast<T>(11.3137085));
     auto idx_i = ConvertInRangeTo(

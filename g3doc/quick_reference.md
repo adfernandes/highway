@@ -2568,7 +2568,8 @@ The following `ReverseN` must not be called if `Lanes(D()) < N`:
     `T` denote `TFromD<D>`. Only available if `HWY_TARGET != HWY_SCALAR` and
     `HWY_MIN_BYTES / sizeof(T) >= 4`. The latter is guaranteed if `T` is four
     bytes and `D` is one of `FixedTag<T, 16/sizeof(T)>` or `ScalableTag<T>` or
-    `CappedTag<T, N/sizeof(T)>` (where `N >= 16`).
+    `CappedTag<T, N/sizeof(T)>` (where `N >= 16`). The constexpr function
+    `CanLookup8(d)` is the preferred way to check these conditions.
 
 *   <code>unspecified **IndicesFromVec**(D d, V idx)</code> prepares for
     `TableLookupLanes` or `TwoTablesLookupLanes` with integer indices in `idx`,
