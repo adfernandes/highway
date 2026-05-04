@@ -432,6 +432,24 @@ Applications should be compiled with optimizations enabled. Without inlining
 SIMD code may slow down by factors of 10 to 100. For clang and GCC, `-O2` is
 generally sufficient.
 
+For Clang and GCC, we recommend using dynamic dispatch (see Quick start),
+because this avoids the need for extra compiler flags which may be incompatible
+with other libraries and always uses the best available instructions. If you
+know exactly which CPU you are running on, you can specify that as the baseline
+target, which avoids generating code for any older instruction sets. Compiler
+flags must match the predefined macro checks for `HWY_BASELINE_*` in
+`detect_targets.h`. They can also be deduced from the `HWY_TARGET_STR` in
+`set_macros-inl.h`. For x86, suggested flags are currently:
+
+-   `HWY_AVX2`: `-march=x86-64-v3 -maes -mpclmul`, or `-march=haswell -maes`
+-   `HWY_AVX3`: `-march=x86-64-v4`, or `-march=skx`
+-   `HWY_AVX3_DL`: `-march=icelake-server`
+-   `HWY_ZEN4`: `-march=znver4`
+-   `HWY_AVX3_SPR`: `-march=icelake-server -mavx512fp16 -mavx512bf16`
+-   `HWY_AVX10_2`: `-march=novalake` (requires GCC 16 or Clang 22)
+
+See also the godbolt examples above mentioning -m targets.
+
 For MSVC, we recommend compiling with `/Gv` to allow non-inlined functions to
 pass vector arguments in registers. If intending to use the AVX2 target together
 with half-width vectors (e.g. for `PromoteTo`), it is also important to compile
