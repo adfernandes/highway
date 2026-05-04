@@ -148,17 +148,16 @@ struct TestLoadDup128 {
 #if HWY_TARGET != HWY_SCALAR || HWY_IDE
     constexpr size_t N128 = 16 / sizeof(T);
     alignas(16) T lanes[N128];
+    const int base = hwy::Unpredictable1();
     for (size_t i = 0; i < N128; ++i) {
-      lanes[i] = ConvertScalarTo<T>(hwy::Unpredictable1() + i);
+      lanes[i] = ConvertScalarTo<T>(base + static_cast<int>(i));
     }
-
     const size_t N = Lanes(d);
     auto expected = AllocateAligned<T>(N);
     HWY_ASSERT(expected);
     for (size_t i = 0; i < N; ++i) {
-      expected[i] = ConvertScalarTo<T>(i % N128 + hwy::Unpredictable1());
+      expected[i] = ConvertScalarTo<T>(base + static_cast<int>(i % N128));
     }
-
     HWY_ASSERT_VEC_EQ(d, expected.get(), LoadDup128(d, lanes));
 #else
     (void)d;
