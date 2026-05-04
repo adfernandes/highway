@@ -1472,6 +1472,32 @@ HWY_INLINE V Atanh(const D d, V x) {
              Xor(kHalf, sign));
 }
 
+namespace impl {
+
+// Barrett reduction (n/3) via MulHigh by 0x5556, repartitions to u16 lanes
+template <class DI, class VI = decltype(Zero(DI()))>
+HWY_INLINE void CbrtDivMod3(DI di, VI exp_shifted, VI& div, VI& mod) {
+  const Repartition<uint16_t, DI> du16;
+  using VU16 = decltype(Zero(du16));
+  const VU16 exp_u16 = BitCast(du16, exp_shifted);
+  const VU16 div_u16 =
+      MulHigh(exp_u16, Set(du16, static_cast<uint16_t>(0x5556)));
+  const VU16 mod_u16 =
+      Sub(exp_u16, Mul(div_u16, Set(du16, static_cast<uint16_t>(3))));
+  div = BitCast(di, div_u16);
+  mod = BitCast(di, mod_u16);
+}
+
+// Single-lane fallback, Barrett reduction on the int lane with no Repartition
+template <class DI, class VI = decltype(Zero(DI()))>
+HWY_INLINE void CbrtDivMod3Scalar(DI di, VI exp_shifted, VI& div, VI& mod) {
+  using TI = TFromD<DI>;
+  div = ShiftRight<16>(Mul(exp_shifted, Set(di, static_cast<TI>(0x5556))));
+  mod = Sub(exp_shifted, Mul(div, Set(di, static_cast<TI>(3))));
+}
+
+}  // namespace impl
+
 // Modified from BSD-licensed code
 // Copyright (c) the JPEG XL Project Authors. All rights reserved.
 // See https://github.com/libjxl/libjxl/blob/main/LICENSE.
@@ -1510,33 +1536,19 @@ HWY_INLINE V Cbrt(const D d, V x) {
       Add(ShiftRight < kIsF32 ? 23 : 52 > (x_int),
           Set(di, kIsF32 ? static_cast<TI>(257) : static_cast<TI>(513)));
 
-  // Barrett reduction (n/3) via MulHigh by 0x5556
-  // Cannot Repartition to smaller lanes on a single-lane target
   VI exp_shifted_div_3;
   VI exp_mod_3;
-  if constexpr (HWY_MAX_LANES_D(D) > 1) {
+  if constexpr ((HWY_MAX_LANES_D(D) > 1 && !HWY_HAVE_SCALABLE) ||
+                (HWY_HAVE_SCALABLE && detail::IsFull(d))) {
+    impl::CbrtDivMod3(di, exp_shifted, exp_shifted_div_3, exp_mod_3);
+  } else if constexpr (HWY_MAX_LANES_D(D) > 1) {
     if (Lanes(d) > 1) {
-      const Repartition<uint16_t, decltype(di)> du16;
-      using VU16 = decltype(Zero(du16));
-      const VU16 exp_shifted_u16 = BitCast(du16, exp_shifted);
-      const VU16 exp_shifted_div_3_u16 =
-          MulHigh(exp_shifted_u16, Set(du16, static_cast<uint16_t>(0x5556)));
-      const VU16 exp_mod_3_u16 =
-          Sub(exp_shifted_u16,
-              Mul(exp_shifted_div_3_u16, Set(du16, static_cast<uint16_t>(3))));
-      exp_shifted_div_3 = BitCast(di, exp_shifted_div_3_u16);
-      exp_mod_3 = BitCast(di, exp_mod_3_u16);
+      impl::CbrtDivMod3(di, exp_shifted, exp_shifted_div_3, exp_mod_3);
     } else {
-      exp_shifted_div_3 =
-          ShiftRight<16>(Mul(exp_shifted, Set(di, static_cast<TI>(0x5556))));
-      exp_mod_3 =
-          Sub(exp_shifted, Mul(exp_shifted_div_3, Set(di, static_cast<TI>(3))));
+      impl::CbrtDivMod3Scalar(di, exp_shifted, exp_shifted_div_3, exp_mod_3);
     }
   } else {
-    exp_shifted_div_3 =
-        ShiftRight<16>(Mul(exp_shifted, Set(di, static_cast<TI>(0x5556))));
-    exp_mod_3 =
-        Sub(exp_shifted, Mul(exp_shifted_div_3, Set(di, static_cast<TI>(3))));
+    impl::CbrtDivMod3Scalar(di, exp_shifted, exp_shifted_div_3, exp_mod_3);
   }
 
   // Undo constant shift to ensure non negative
@@ -1555,12 +1567,9 @@ HWY_INLINE V Cbrt(const D d, V x) {
     HWY_ALIGN static constexpr float initial_guess[8] = {
         0.92807984f, 0.81504166f, 0.73603648f, 0.65004617f,
         0.58375800f, 0.51406258f, 0.0f,        0.0f};
-    if constexpr (HWY_MAX_LANES_D(D) >= 4) {
-      if (Lanes(d) >= 4) {
-        r = Lookup8(d, initial_guess, idx);
-      } else {
-        r = GatherIndex(d, initial_guess, idx);
-      }
+    if constexpr ((HWY_MAX_LANES_D(D) >= 4 && !HWY_HAVE_SCALABLE) ||
+                  (HWY_HAVE_SCALABLE && sizeof(T) == 4 && detail::IsFull(d))) {
+      r = Lookup8(d, initial_guess, idx);
     } else {
       r = GatherIndex(d, initial_guess, idx);
     }
