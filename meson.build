@@ -97,6 +97,7 @@ hwy_headers = files(
     'hwy/ops/set_macros-inl.h',
     'hwy/ops/shared-inl.h',
     'hwy/ops/wasm_128-inl.h',
+    'hwy/ops/wasm_256-inl.h',
     'hwy/ops/x86_128-inl.h',
     'hwy/ops/x86_256-inl.h',
     'hwy/ops/x86_512-inl.h',
