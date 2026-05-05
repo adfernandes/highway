@@ -508,9 +508,9 @@ HWY_INLINE V FastAtan2(const D d, V y, V x) {
  *
  * Valid Lane Types: float32, float64
  * Max Relative Error : 0.0006% for float32, 0.0006% for float64
- * Average Relative Error : 0.00002% for float32, 0.000003% for float64
+ * Average Relative Error : 0.00002% for float32, 3e-6% for float64
  * Max Relative Error for [-0.01, 0.01] : 0.00003%
- * Average Relative Error for [-0.01, 0.01] : 0.0000003%
+ * Average Relative Error for [-0.01, 0.01] : 3e-7%
  * Valid Range: float32: [-1e35, +1e35]
  *              float64: [-1e305, +1e305]
  *
