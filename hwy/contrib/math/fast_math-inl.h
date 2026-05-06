@@ -503,6 +503,105 @@ HWY_INLINE V FastAtan2(const D d, V y, V x) {
   return IfThenElse(is_nan, NaN(d), CopySign(angle, y));
 }
 
+namespace impl {
+
+// Computes the index vector required for Lookup8 when the
+// intervals are uneven. Runs either an adder tree or a sequential add chain
+// depending on the number of registers.
+template <class D, class V>
+HWY_INLINE Vec<RebindToSigned<D>> ComputeIndices8Intervals(
+    D d, V y, const TFromD<D>* HWY_RESTRICT thresholds) {
+  using DI = RebindToSigned<D>;
+  auto idx_i = Zero(DI());
+  const auto one_i = Set(DI(), 1);
+
+  const auto t0 = Set(d, thresholds[0]);
+  const auto t1 = Set(d, thresholds[1]);
+  const auto t2 = Set(d, thresholds[2]);
+  const auto t3 = Set(d, thresholds[3]);
+  const auto t4 = Set(d, thresholds[4]);
+  const auto t5 = Set(d, thresholds[5]);
+  const auto t6 = Set(d, thresholds[6]);
+
+  const auto mask0 = RebindMask(DI(), Ge(y, t0));
+  const auto mask1 = RebindMask(DI(), Ge(y, t1));
+  const auto mask2 = RebindMask(DI(), Ge(y, t2));
+  const auto mask3 = RebindMask(DI(), Ge(y, t3));
+  const auto mask4 = RebindMask(DI(), Ge(y, t4));
+  const auto mask5 = RebindMask(DI(), Ge(y, t5));
+  const auto mask6 = RebindMask(DI(), Ge(y, t6));
+
+#ifdef HWY_NATIVE_MASK
+  if constexpr (HWY_REGISTERS >= 32) {
+    // Adder tree for native masks.
+    const auto sum0 = IfThenElseZero(mask0, one_i);
+    const auto sum01 = MaskedAddOr(sum0, mask1, sum0, one_i);
+
+    const auto sum2 = IfThenElseZero(mask2, one_i);
+    const auto sum23 = MaskedAddOr(sum2, mask3, sum2, one_i);
+
+    const auto sum4 = IfThenElseZero(mask4, one_i);
+    const auto sum45 = MaskedAddOr(sum4, mask5, sum4, one_i);
+
+    const auto sum6 = IfThenElseZero(mask6, one_i);
+
+    const auto sum03 = Add(sum01, sum23);
+    const auto sum46 = Add(sum45, sum6);
+
+    idx_i = Add(sum03, sum46);
+  } else {
+    // 2x unrolled sequential chain.
+    const auto sum0 = IfThenElseZero(mask0, one_i);
+    const auto sum02 = MaskedAddOr(sum0, mask2, sum0, one_i);
+    const auto sum024 = MaskedAddOr(sum02, mask4, sum02, one_i);
+    const auto sum0246 = MaskedAddOr(sum024, mask6, sum024, one_i);
+
+    const auto sum1 = IfThenElseZero(mask1, one_i);
+    const auto sum13 = MaskedAddOr(sum1, mask3, sum1, one_i);
+    const auto sum135 = MaskedAddOr(sum13, mask5, sum13, one_i);
+
+    idx_i = Add(sum0246, sum135);
+  }
+#else
+  (void)one_i;
+  if constexpr (HWY_REGISTERS >= 32) {
+    // Accummulate -1s in a tree to reduce latency
+    const auto m0 = VecFromMask(DI(), mask0);
+    const auto m1 = VecFromMask(DI(), mask1);
+    const auto m2 = VecFromMask(DI(), mask2);
+    const auto m3 = VecFromMask(DI(), mask3);
+    const auto m4 = VecFromMask(DI(), mask4);
+    const auto m5 = VecFromMask(DI(), mask5);
+    const auto m6 = VecFromMask(DI(), mask6);
+
+    const auto sum01 = Add(m0, m1);
+    const auto sum23 = Add(m2, m3);
+    const auto sum45 = Add(m4, m5);
+
+    const auto sum03 = Add(sum01, sum23);
+    const auto sum46 = Add(sum45, m6);
+
+    idx_i = Neg(Add(sum03, sum46));
+  } else {
+    // Subtract in a 2x unrolled chain
+    auto sum0246 = Sub(idx_i, VecFromMask(DI(), mask0));
+    sum0246 = Sub(sum0246, VecFromMask(DI(), mask2));
+    sum0246 = Sub(sum0246, VecFromMask(DI(), mask4));
+    sum0246 = Sub(sum0246, VecFromMask(DI(), mask6));
+
+    auto sum135 = Zero(DI());
+    sum135 = Sub(sum135, VecFromMask(DI(), mask1));
+    sum135 = Sub(sum135, VecFromMask(DI(), mask3));
+    sum135 = Sub(sum135, VecFromMask(DI(), mask5));
+
+    idx_i = Add(sum0246, sum135);
+  }
+#endif
+  return idx_i;
+}
+
+}  // namespace impl
+
 /**
  * Fast approximation of tanh(x).
  *
@@ -525,94 +624,14 @@ HWY_INLINE V FastTanh(D d, V val) {
 
   V a, b, c, d_val, e, f;
 
-  const auto t0 = Set(d, static_cast<T>(0.168236118310606));
-  const auto t1 = Set(d, static_cast<T>(0.365443754271396));
-  const auto t2 = Set(d, static_cast<T>(0.549306144334055));
-  const auto t3 = Set(d, static_cast<T>(0.804718956217050));
-  const auto t4 = Set(d, static_cast<T>(1.203972804325936));
-  const auto t5 = Set(d, static_cast<T>(2.969315202883957));
-  const auto t6 = Set(d, static_cast<T>(4.734657601441978));
+  HWY_ALIGN static constexpr T thresholds[7] = {
+      static_cast<T>(0.168236118310606), static_cast<T>(0.365443754271396),
+      static_cast<T>(0.549306144334055), static_cast<T>(0.804718956217050),
+      static_cast<T>(1.203972804325936), static_cast<T>(2.969315202883957),
+      static_cast<T>(4.734657601441978)};
 
   if constexpr (CanLookup8(d)) {
-    using DI = RebindToSigned<D>;
-    auto idx_i = Zero(DI());
-    const auto one_i = Set(DI(), 1);
-
-    // Rebind masks to integer comparisons
-    const auto mask0 = RebindMask(DI(), Ge(y, t0));
-    const auto mask1 = RebindMask(DI(), Ge(y, t1));
-    const auto mask2 = RebindMask(DI(), Ge(y, t2));
-    const auto mask3 = RebindMask(DI(), Ge(y, t3));
-    const auto mask4 = RebindMask(DI(), Ge(y, t4));
-    const auto mask5 = RebindMask(DI(), Ge(y, t5));
-    const auto mask6 = RebindMask(DI(), Ge(y, t6));
-
-#ifdef HWY_NATIVE_MASK
-    if constexpr (HWY_REGISTERS >= 32) {
-      // Adder tree for native masks.
-      const auto sum0 = IfThenElseZero(mask0, one_i);
-      const auto sum01 = MaskedAddOr(sum0, mask1, sum0, one_i);
-
-      const auto sum2 = IfThenElseZero(mask2, one_i);
-      const auto sum23 = MaskedAddOr(sum2, mask3, sum2, one_i);
-
-      const auto sum4 = IfThenElseZero(mask4, one_i);
-      const auto sum45 = MaskedAddOr(sum4, mask5, sum4, one_i);
-
-      const auto sum6 = IfThenElseZero(mask6, one_i);
-
-      const auto sum03 = Add(sum01, sum23);
-      const auto sum46 = Add(sum45, sum6);
-
-      idx_i = Add(sum03, sum46);
-    } else {
-      // 2x unrolled sequential chain.
-      const auto sum0 = IfThenElseZero(mask0, one_i);
-      const auto sum02 = MaskedAddOr(sum0, mask2, sum0, one_i);
-      const auto sum024 = MaskedAddOr(sum02, mask4, sum02, one_i);
-      const auto sum0246 = MaskedAddOr(sum024, mask6, sum024, one_i);
-
-      const auto sum1 = IfThenElseZero(mask1, one_i);
-      const auto sum13 = MaskedAddOr(sum1, mask3, sum1, one_i);
-      const auto sum135 = MaskedAddOr(sum13, mask5, sum13, one_i);
-
-      idx_i = Add(sum0246, sum135);
-    }
-#else
-    (void)one_i;
-    if constexpr (HWY_REGISTERS >= 32) {
-      // Accummulate -1s in a tree to reduce latency
-      const auto m0 = VecFromMask(DI(), mask0);
-      const auto m1 = VecFromMask(DI(), mask1);
-      const auto m2 = VecFromMask(DI(), mask2);
-      const auto m3 = VecFromMask(DI(), mask3);
-      const auto m4 = VecFromMask(DI(), mask4);
-      const auto m5 = VecFromMask(DI(), mask5);
-      const auto m6 = VecFromMask(DI(), mask6);
-
-      const auto sum01 = Add(m0, m1);
-      const auto sum23 = Add(m2, m3);
-      const auto sum45 = Add(m4, m5);
-
-      const auto sum03 = Add(sum01, sum23);
-      const auto sum46 = Add(sum45, m6);
-
-      idx_i = Neg(Add(sum03, sum46));
-    } else {
-      // Subtract in a 2x unrolled chain
-      auto sum0246 = Sub(idx_i, VecFromMask(DI(), mask0));
-      sum0246 = Sub(sum0246, VecFromMask(DI(), mask2));
-      sum0246 = Sub(sum0246, VecFromMask(DI(), mask4));
-      sum0246 = Sub(sum0246, VecFromMask(DI(), mask6));
-
-      auto sum135 = Zero(DI());
-      sum135 = Sub(sum135, VecFromMask(DI(), mask1));
-      sum135 = Sub(sum135, VecFromMask(DI(), mask3));
-      sum135 = Sub(sum135, VecFromMask(DI(), mask5));
-
-      idx_i = Add(sum0246, sum135);
-    }
-#endif
+    auto idx_i = impl::ComputeIndices8Intervals(d, y, thresholds);
 
     HWY_ALIGN static constexpr T arr_a[8] = {
         static_cast<T>(0.124683326807972),
@@ -666,9 +685,6 @@ HWY_INLINE V FastTanh(D d, V val) {
         static_cast<T>(0.51454722991951),
         static_cast<T>(0.92584756176511)};
 
-    // Since Lookup8 is available for HWY_MIN_BYTES / sizeof(T) >= 4, this
-    // condition covers all cases we encounter inside the top level if block
-    // inside FastTanh
     a = Lookup8(d, arr_a, idx_i);
     b = Lookup8(d, arr_b, idx_i);
     c = Lookup8(d, arr_c, idx_i);
@@ -676,6 +692,13 @@ HWY_INLINE V FastTanh(D d, V val) {
     e = Lookup8(d, arr_e, idx_i);
     f = Lookup8(d, arr_f, idx_i);
   } else {
+    const auto t0 = Set(d, thresholds[0]);
+    const auto t1 = Set(d, thresholds[1]);
+    const auto t2 = Set(d, thresholds[2]);
+    const auto t3 = Set(d, thresholds[3]);
+    const auto t4 = Set(d, thresholds[4]);
+    const auto t5 = Set(d, thresholds[5]);
+    const auto t6 = Set(d, thresholds[6]);
     // --- FALLBACK PATH: Blend Chain ---
     if constexpr (HWY_REGISTERS >= 32) {
       // Split into two parallel chains to reduce dependency latency.
