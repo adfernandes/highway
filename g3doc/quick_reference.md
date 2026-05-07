@@ -1320,6 +1320,8 @@ them from 2-argument functions:
 *   <code>V **OrAnd**(V o, V a1, V a2)</code>: returns `o[i] | (a1[i] & a2[i])`.
 *   <code>V **XorAndNot**(V x, V a1, V a2)</code>: returns `x[i] ^ (~a1[i] &
     a2[i])`. This is useful for conditionally flipping bits.
+*   <code>V **AndXor**(V a, V x1, V x2)</code>: returns `a[i] & (x1[i] ^
+    x2[i])`.
 
 *   <code>V **BitwiseIfThenElse**(V mask, V yes, V no)</code>: returns
     `((mask[i] & yes[i]) | (~mask[i] & no[i]))`. `BitwiseIfThenElse` is

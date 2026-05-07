@@ -883,6 +883,22 @@ HWY_API V XorAndNot(const V x, const V a1, const V a2) {
 
 #endif  // HWY_NATIVE_BCAX
 
+// ------------------------------ AndXor
+
+#if (defined(HWY_NATIVE_TERNLOG) == defined(HWY_TARGET_TOGGLE))
+#ifdef HWY_NATIVE_TERNLOG
+#undef HWY_NATIVE_TERNLOG
+#else
+#define HWY_NATIVE_TERNLOG
+#endif
+
+template <class V>
+HWY_API V AndXor(const V a, const V x1, const V x2) {
+  return And(a, Xor(x1, x2));
+}
+
+#endif  // HWY_NATIVE_TERNLOG
+
 // ------------------------------ IfNegativeThenNegOrUndefIfZero
 
 #if (defined(HWY_NATIVE_INTEGER_IF_NEGATIVE_THEN_NEG) == \

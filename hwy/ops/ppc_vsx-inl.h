@@ -428,11 +428,17 @@ static HWY_INLINE bool IsConstantRawAltivecVect(RawV v) {
 
 // ------------------------------ TernaryLogic
 #if HWY_PPC_HAVE_10
+
+#ifdef HWY_NATIVE_TERNLOG
+#undef HWY_NATIVE_TERNLOG
+#else
+#define HWY_NATIVE_TERNLOG
+#endif
+
 namespace detail {
 
 // NOTE: the kTernLogOp bits of the PPC10 TernaryLogic operation are in reverse
-// order of the kTernLogOp bits of AVX3
-// _mm_ternarylogic_epi64(a, b, c, kTernLogOp)
+// order of the kTernLogOp bits of AVX3's _mm_ternarylogic_epi64
 template <uint8_t kTernLogOp, class V>
 HWY_INLINE V TernaryLogic(V a, V b, V c) {
   const DFromV<decltype(a)> d;
@@ -506,6 +512,27 @@ HWY_API Vec128<T, N> XorAndNot(Vec128<T, N> x, Vec128<T, N> a1,
     return detail::TernaryLogic<0x4B>(x, a1, a2);
   }
 }
+
+// ------------------------------ XorAndNot
+
+// (HWY_NATIVE_TERNLOG already flipped above)
+
+template <typename T, size_t N>
+HWY_API Vec128<T, N> AndXor(Vec128<T, N> a, Vec128<T, N> x1,
+                               Vec128<T, N> x2) {
+#if defined(__OPTIMIZE__)
+  if (static_cast<int>(detail::IsConstantRawAltivecVect(a.raw)) +
+          static_cast<int>(detail::IsConstantRawAltivecVect(x1.raw)) +
+          static_cast<int>(detail::IsConstantRawAltivecVect(x2.raw)) >=
+      2) {
+    return And(a, Xor(x1, x2));
+  } else  // NOLINT
+#endif
+  {
+    return detail::TernaryLogic<0x06>(x, a1, a2);
+  }
+}
+
 
 #endif  // HWY_PPC_HAVE_10
 

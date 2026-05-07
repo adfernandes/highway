@@ -790,10 +790,20 @@ HWY_API V Xor3(V x1, V x2, V x3) {
 #else
 #define HWY_NATIVE_BCAX
 #endif
+#ifdef HWY_NATIVE_TERNLOG
+#undef HWY_NATIVE_TERNLOG
+#else
+#define HWY_NATIVE_TERNLOG
+#endif
 
 template <class V>  // generic for all vector lengths
 HWY_API V XorAndNot(V x, V a1, V a2) {
   return detail::TernaryLogic<0xD2>(x, a1, a2);
+}
+
+template <class V>  // generic for all vector lengths
+HWY_API V AndXor(V a, V x1, V x2) {
+  return detail::TernaryLogic<0x60>(a, x1, x2);
 }
 
 #endif  // HWY_X86_HAVE_TERNARY_LOGIC

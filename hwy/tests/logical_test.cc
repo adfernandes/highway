@@ -120,6 +120,15 @@ struct TestLogical {
     HWY_ASSERT_VEC_EQ(d, v0, XorAndNot(vi, v0, vi));
     HWY_ASSERT_VEC_EQ(d, vi, XorAndNot(vi, vi, v0));
     HWY_ASSERT_VEC_EQ(d, vi, XorAndNot(vi, vi, vi));
+
+    HWY_ASSERT_VEC_EQ(d, v0, AndXor(v0, v0, v0));
+    HWY_ASSERT_VEC_EQ(d, v0, AndXor(v0, v0, vi));
+    HWY_ASSERT_VEC_EQ(d, v0, AndXor(v0, vi, v0));
+    HWY_ASSERT_VEC_EQ(d, v0, AndXor(v0, vi, vi));
+    HWY_ASSERT_VEC_EQ(d, v0, AndXor(vi, v0, v0));
+    HWY_ASSERT_VEC_EQ(d, vi, AndXor(vi, v0, vi));
+    HWY_ASSERT_VEC_EQ(d, vi, AndXor(vi, vi, v0));
+    HWY_ASSERT_VEC_EQ(d, v0, AndXor(vi, vi, vi));
   }
 };
 
