@@ -560,7 +560,8 @@ HWY_API bool IsAligned(D d, T* ptr) {
   return reinterpret_cast<uintptr_t>(ptr) % (N * sizeof(T)) == 0;
 }
 
-// Returns whether `Lookup8` can be used for vectors created from tag `d`.
+// Returns whether `Lookup8` can definitely be used for vectors created from
+// tag `d`. May return a false negative for large scalable vectors.
 template <class D, typename T = TFromD<D>>
 HWY_API constexpr bool CanLookup8(D d) {
   // `Lookup8` can use two-register tables, so it is sufficient to ensure
@@ -572,6 +573,14 @@ HWY_API constexpr bool CanLookup8(D d) {
   return (!HWY_HAVE_SCALABLE && MaxLanes(d) >= 4) ||
          (HWY_HAVE_SCALABLE && detail::IsFull(d) &&
           (sizeof(T) == 2 || sizeof(T) == 4));
+}
+
+// Returns whether `Lookup16` can definitely be used for vectors created from
+// tag `d`. May return a false negative for large scalable vectors.
+template <class D, typename T = TFromD<D>>
+HWY_API constexpr bool CanLookup16(D d) {
+  return (!HWY_HAVE_SCALABLE && MaxLanes(d) >= 8) ||
+         (HWY_HAVE_SCALABLE && detail::IsFull(d) && (sizeof(T) == 2));
 }
 
 // ------------------------------ Choosing overloads (SFINAE)

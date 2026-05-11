@@ -243,7 +243,7 @@ struct TestLookup8 {
       }
     } else {
       // Too many permutations to test exhaustively; choose one with repeated
-      // indices. Note that the ops checks that indices do not exceed 8.
+      // indices. Note that the op checks that indices do not exceed 7.
       // For larger vectors, upper lanes will be zero.
       HWY_ALIGN TU idx_source[16] = {1, 3, 2, 2, 3, 7, 6, 5,
                                      0, 4, 0, 4, 5, 7, 6, 6};
@@ -269,6 +269,55 @@ HWY_NOINLINE void TestAllLookup8() {
 #endif
 }
 
+struct TestLookup16 {
+  template <class T, class D>
+  HWY_NOINLINE void operator()(T /*unused*/, D d) {
+    using V = Vec<D>;
+    const RebindToUnsigned<D> du;
+    using TU = TFromD<decltype(du)>;
+
+    const size_t N = Lanes(d);
+    if (N < 8) return;
+
+    const size_t padded_N = HWY_MAX(N, 16);
+    auto tbl = AllocateAligned<T>(padded_N);
+    auto idx = AllocateAligned<TU>(padded_N);
+    auto expected = AllocateAligned<T>(padded_N);
+    HWY_ASSERT(tbl && idx && expected);
+    ZeroBytes(idx.get(), padded_N * sizeof(TU));
+
+    for (size_t i = 0; i < padded_N; ++i) {
+      tbl[i] = ConvertScalarTo<T>(i + static_cast<size_t>(Unpredictable1()));
+    }
+
+    // Too many permutations to test exhaustively; choose one with repeated
+    // indices. Note that the ops checks that indices do not exceed 15.
+    // For larger vectors, upper lanes will be zero.
+    HWY_ALIGN TU idx_source[16] = {1, 3, 2, 2, 3, 15, 14, 9,
+                                   0, 4, 0, 4, 9, 15, 12, 12};
+    for (size_t j = 0; j < padded_N; ++j) {
+      idx[j] = static_cast<TU>(idx_source[j & 15]);
+      expected[j] = ConvertScalarTo<T>(idx[j] + 1);  // == v[idx[j]]
+    }
+
+    const V actual = Lookup16(d, tbl.get(), Load(du, idx.get()));
+    HWY_ASSERT_VEC_EQ(d, expected.get(), actual);
+  }
+};
+
+HWY_NOINLINE void TestAllLookup16() {
+  ForUIF16(ForGE128Vectors<TestLookup16>());
+// For Lookup16 with 32-bit lanes, we require a scalable target (fine because
+// the test has a runtime check) or 256 bit vectors: 16 elements across two
+// vectors, hence at least eight per vector.
+#if HWY_HAVE_SCALABLE || HWY_MIN_BYTES / 4 >= 8
+  ForUIF32(ForGE128Vectors<TestLookup16>());
+#endif
+#if HWY_HAVE_SCALABLE || HWY_MIN_BYTES / 8 >= 8
+  ForUIF64(ForGE128Vectors<TestLookup16>());
+#endif
+}
+
 }  // namespace
 // NOLINTNEXTLINE(google-readability-namespace-comments)
 }  // namespace HWY_NAMESPACE
@@ -282,6 +331,7 @@ HWY_BEFORE_TEST(HwyTableTest);
 HWY_EXPORT_AND_TEST_P(HwyTableTest, TestAllTableLookupLanes);
 HWY_EXPORT_AND_TEST_P(HwyTableTest, TestAllTwoTablesLookupLanes);
 HWY_EXPORT_AND_TEST_P(HwyTableTest, TestAllLookup8);
+HWY_EXPORT_AND_TEST_P(HwyTableTest, TestAllLookup16);
 HWY_AFTER_TEST();
 }  // namespace
 }  // namespace hwy
