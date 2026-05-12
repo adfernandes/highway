@@ -512,6 +512,16 @@ cc_binary(
 )
 
 cc_binary(
+    name = "ctf_aes",
+    srcs = ["hwy/examples/ctf_aes.cc"],
+    copts = COPTS,
+    deps = [
+        ":hwy",
+        ":timer",
+    ],
+)
+
+cc_binary(
     name = "dot_product_unroll",
     srcs = ["hwy/examples/dot_product_unroll.cc"],
     copts = COPTS,

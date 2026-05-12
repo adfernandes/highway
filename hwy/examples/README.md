@@ -23,6 +23,12 @@ SIMD version of the ASCII art renderer, demonstrating:
 -   Chaining `IfThenElse` for nested conditions.
 -   Using a lambda function with `HWY_ATTR` for SIMD operations.
 
+### `ctf_aes.cc`
+Tutorial demonstrating for hardware-accelerated cryptography, showing:
+- Portable hardware-accelerated AES block round operations (`hn::AESRound`).
+- Target-native mask generation via `hn::FirstN` and masked comparisons via `hn::MaskedEq`.
+- Use of `FixedTag` for getting vectors of fixed length.
+
 ## How to Run
 
 ### Using Bazel
@@ -34,6 +40,7 @@ To run the examples using Bazel:
 blaze run //third_party/highway:sum_array_simple
 blaze run //third_party/highway:sum_array_advanced
 blaze run //third_party/highway:masks_and_logic
+blaze run //third_party/highway:ctf_aes
 ```
 
 <!-- copybara:strip_end_and_replace
@@ -41,6 +48,7 @@ blaze run //third_party/highway:masks_and_logic
 bazel run //:sum_array_simple
 bazel run //:sum_array_advanced
 bazel run //:masks_and_logic
+bazel run //:ctf_aes
 ```
 -->
 
