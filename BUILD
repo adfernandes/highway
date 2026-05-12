@@ -503,6 +503,15 @@ cc_binary(
 )
 
 cc_binary(
+    name = "masks_and_logic",
+    srcs = ["hwy/examples/masks_and_logic.cc"],
+    copts = COPTS,
+    deps = [
+        ":hwy",
+    ],
+)
+
+cc_binary(
     name = "dot_product_unroll",
     srcs = ["hwy/examples/dot_product_unroll.cc"],
     copts = COPTS,

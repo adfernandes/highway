@@ -9,26 +9,44 @@ Minimal code demonstrating how to sum an array of floats using Highway SIMD, wit
 
 ### `sum_array_advanced.cc`
 Advanced implementation demonstrating:
+
 - Loop unrolling (factor of 4) for better performance.
 - Use of `LoadN` with `FirstN` mask for precise remainder handling without scalar fallbacks.
 - Runtime checks and validation against a scalar implementation.
+
+### `masks_and_logic.cc`
+
+SIMD version of the ASCII art renderer, demonstrating:
+
+-   Branching and masking within register.
+-   Boolean operations on masks (`And`, `AndNot`).
+-   Chaining `IfThenElse` for nested conditions.
+-   Using a lambda function with `HWY_ATTR` for SIMD operations.
 
 ## How to Run
 
 ### Using Bazel
 To run the examples using Bazel:
+
+<!-- copybara:strip_begin(internal) -->
+
 ```bash
-#  copybara:strip_begin(internal)
 blaze run //third_party/highway:sum_array_simple
 blaze run //third_party/highway:sum_array_advanced
-#  copybara:strip_end
+blaze run //third_party/highway:masks_and_logic
+```
 
+<!-- copybara:strip_end_and_replace
+```bash
 bazel run //:sum_array_simple
 bazel run //:sum_array_advanced
+bazel run //:masks_and_logic
 ```
+-->
 
 ### Using CMake
 If you are building Highway with CMake (from the root of the highway directory):
+
 ```bash
 mkdir build && cd build
 cmake .. -DHWY_ENABLE_EXAMPLES=ON
@@ -39,6 +57,7 @@ make
 
 ### Using Clang directly
 To compile and run using `clang++` (from the root of the highway directory):
+
 ```bash
 clang++ -std=c++17 -O3 -I. hwy/examples/sum_array_simple.cc hwy/targets.cc hwy/per_target.cc hwy/print.cc hwy/abort.cc hwy/aligned_allocator.cc -o sum_array_simple
 
@@ -47,9 +66,11 @@ clang++ -std=c++17 -O3 -I. hwy/examples/sum_array_simple.cc hwy/targets.cc hwy/p
 
 ### Using GCC directly
 To compile and run using `g++` (from the root of the highway directory):
+
 ```bash
 g++ -std=c++17 -O3 -I. hwy/examples/sum_array_simple.cc hwy/targets.cc hwy/per_target.cc hwy/print.cc hwy/abort.cc hwy/aligned_allocator.cc -o sum_array_simple
 
 ./sum_array_simple
 ```
+
 *Note: `g++` might emit some assembler warnings like `no SFrame FDE emitted`, which are benign and can be ignored.*
