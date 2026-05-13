@@ -6910,9 +6910,9 @@ HWY_INLINE Vec<D> Lookup8(D d, const T* HWY_RESTRICT table, VI indices) {
     // tables are sufficient.
     HWY_IF_CONSTEXPR(MaxLanes(d) >= 8) {
       const CappedTag<T, 8> d8;
-      // We want to perform one lookup per index, hence cast. This has no
-      // runtime cost; the upper lanes are unused.
-      const Vec<D> t0 = ResizeBitCast(d, Load(d8, table));
+      // We want to perform one lookup per index, hence resize. This has better
+      // codegen than ResizeBitCast.
+      const Vec<D> t0 = ZeroExtendResizeBitCast(d, d8, Load(d8, table));
       return TableLookupLanes(t0, IndicesFromVec(d, indices));
     }
     HWY_IF_CONSTEXPR(MaxLanes(d) < 8) {
@@ -6976,9 +6976,9 @@ HWY_INLINE Vec<D> Lookup16(D d, const T* HWY_RESTRICT table, VI indices) {
     // tables are sufficient.
     HWY_IF_CONSTEXPR(MaxLanes(d) >= 16) {
       const CappedTag<T, 16> d16;
-      // We want to perform one lookup per index, hence cast. This has no
-      // runtime cost; the upper lanes are unused.
-      const Vec<D> t0 = ResizeBitCast(d, Load(d16, table));
+      // We want to perform one lookup per index, hence resize. This has better
+      // codegen than ResizeBitCast.
+      const Vec<D> t0 = ZeroExtendResizeBitCast(d, d16, Load(d16, table));
       return TableLookupLanes(t0, IndicesFromVec(d, indices));
     }
     HWY_IF_CONSTEXPR(MaxLanes(d) < 16) {
