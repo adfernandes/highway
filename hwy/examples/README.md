@@ -29,6 +29,12 @@ Tutorial demonstrating for hardware-accelerated cryptography, showing:
 - Target-native mask generation via `hn::FirstN` and masked comparisons via `hn::MaskedEq`.
 - Use of `FixedTag` for getting vectors of fixed length.
 
+### `matrix_transpose_scatter_gather.cc`
+Tutorial demonstrating SIMD **Gather** and **Scatter** index operations for parallel matrix transposition, showing:
+- Loading/storing elements from/to non-contiguous memory via `hn::GatherIndex` and `hn::ScatterIndex`.
+- Safe tail remainder processing using `hn::LoadN`/`hn::StoreN` and `hn::GatherIndexN`/`hn::ScatterIndexN`.
+- Precomputing strided offsets in registers using `hn::Iota` and `hn::Mul`.
+
 ## How to Run
 
 ### Using Bazel
@@ -41,6 +47,7 @@ blaze run //third_party/highway:sum_array_simple
 blaze run //third_party/highway:sum_array_advanced
 blaze run //third_party/highway:masks_and_logic
 blaze run //third_party/highway:ctf_aes
+blaze run //third_party/highway:matrix_transpose_scatter_gather
 ```
 
 <!-- copybara:strip_end_and_replace
@@ -49,6 +56,7 @@ bazel run //:sum_array_simple
 bazel run //:sum_array_advanced
 bazel run //:masks_and_logic
 bazel run //:ctf_aes
+bazel run //:matrix_transpose_scatter_gather
 ```
 -->
 
