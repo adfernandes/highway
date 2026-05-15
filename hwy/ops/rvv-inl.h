@@ -711,6 +711,16 @@ HWY_API size_t CappedLanes(D /* tag*/, size_t cap) {
                                                      HWY_RVV_AVL(SEW, SHIFT)); \
   }
 
+// vector = f(vector, mask, vector), e.g. MaskedSqrtOr
+#define HWY_RVV_RETV_ARGMV(BASE, CHAR, SEW, SEWD, SEWH, LMUL, LMULD, LMULH,   \
+                           SHIFT, MLEN, NAME, OP)                             \
+  HWY_API HWY_RVV_V(BASE, SEW, LMUL)                                           \
+      NAME(HWY_RVV_V(BASE, SEW, LMUL) no, HWY_RVV_M(MLEN) m,                   \
+           HWY_RVV_V(BASE, SEW, LMUL) v) {                                     \
+    return __riscv_v##OP##_v_##CHAR##SEW##LMUL##_mu(m, no, v,                  \
+                                                     HWY_RVV_AVL(SEW, SHIFT)); \
+  }
+
 // mask = f(mask)
 #define HWY_RVV_RETM_ARGM(SEW, SHIFT, MLEN, NAME, OP)              \
   HWY_API HWY_RVV_M(MLEN) NAME(HWY_RVV_M(MLEN) m) {                \
@@ -1532,6 +1542,21 @@ HWY_RVV_FOREACH_F(HWY_RVV_RETV_ARGV, ApproximateReciprocal, frec7, _ALL)
 
 // ------------------------------ Sqrt
 HWY_RVV_FOREACH_F(HWY_RVV_RETV_ARGV, Sqrt, fsqrt, _ALL)
+
+// ------------------------------ MaskedSqrt
+#ifdef HWY_NATIVE_MASKED_SQRT
+#undef HWY_NATIVE_MASKED_SQRT
+#else
+#define HWY_NATIVE_MASKED_SQRT
+#endif
+
+HWY_RVV_FOREACH_F(HWY_RVV_RETV_ARGMV, MaskedSqrtOr, fsqrt, _ALL)
+
+template <class V, HWY_IF_FLOAT_V(V), class M>
+HWY_API V MaskedSqrt(M m, V v) {
+  const DFromV<V> d;
+  return MaskedSqrtOr(Zero(d), m, v);
+}
 
 // ------------------------------ ApproximateReciprocalSqrt
 #ifdef HWY_NATIVE_F64_APPROX_RSQRT
@@ -4928,7 +4953,66 @@ HWY_API T ReduceMax(D d, const VFromD<D> v) {
 
 #undef HWY_RVV_REDUCE
 
-// TODO: add MaskedReduceSum/Min/Max
+// ------------------------------ MaskedReduceSum/Min/Max
+
+#ifdef HWY_NATIVE_MASKED_REDUCE_SCALAR
+#undef HWY_NATIVE_MASKED_REDUCE_SCALAR
+#else
+#define HWY_NATIVE_MASKED_REDUCE_SCALAR
+#endif
+
+// scalar = f(mask, vector, identity_m1)
+#define HWY_RVV_MASKED_REDUCE(BASE, CHAR, SEW, SEWD, SEWH, LMUL, LMULD,        \
+                              LMULH, SHIFT, MLEN, NAME, OP)                   \
+  template <size_t N>                                                          \
+  HWY_API HWY_RVV_T(BASE, SEW)                                                 \
+      NAME(HWY_RVV_D(BASE, SEW, N, SHIFT) d, HWY_RVV_M(MLEN) m,               \
+           HWY_RVV_V(BASE, SEW, LMUL) v, HWY_RVV_V(BASE, SEW, m1) v0) {       \
+    return GetLane(__riscv_v##OP##_vs_##CHAR##SEW##LMUL##_##CHAR##SEW##m1##_m( \
+        m, v, v0, Lanes(d)));                                                  \
+  }
+
+namespace detail {
+HWY_RVV_FOREACH_UI(HWY_RVV_MASKED_REDUCE, MaskedRedSum, redsum, _ALL_VIRT)
+HWY_RVV_FOREACH_F(HWY_RVV_MASKED_REDUCE, MaskedRedSum, fredusum, _ALL_VIRT)
+}  // namespace detail
+
+template <class D, class M>
+HWY_API TFromD<D> MaskedReduceSum(D d, M m, VFromD<D> v) {
+  using T = TFromD<D>;
+  const auto v0 = Zero(ScalableTag<T>());
+  return detail::MaskedRedSum(d, m, v, v0);
+}
+
+namespace detail {
+HWY_RVV_FOREACH_U(HWY_RVV_MASKED_REDUCE, MaskedRedMin, redminu, _ALL_VIRT)
+HWY_RVV_FOREACH_I(HWY_RVV_MASKED_REDUCE, MaskedRedMin, redmin, _ALL_VIRT)
+HWY_RVV_FOREACH_F(HWY_RVV_MASKED_REDUCE, MaskedRedMin, fredmin, _ALL_VIRT)
+}  // namespace detail
+
+template <class D, class M>
+HWY_API TFromD<D> MaskedReduceMin(D d, M m, VFromD<D> v) {
+  using T = TFromD<D>;
+  const ScalableTag<T> d1;
+  return detail::MaskedRedMin(
+      d, m, v, Set(d1, hwy::PositiveInfOrHighestValue<T>()));
+}
+
+namespace detail {
+HWY_RVV_FOREACH_U(HWY_RVV_MASKED_REDUCE, MaskedRedMax, redmaxu, _ALL_VIRT)
+HWY_RVV_FOREACH_I(HWY_RVV_MASKED_REDUCE, MaskedRedMax, redmax, _ALL_VIRT)
+HWY_RVV_FOREACH_F(HWY_RVV_MASKED_REDUCE, MaskedRedMax, fredmax, _ALL_VIRT)
+}  // namespace detail
+
+template <class D, class M>
+HWY_API TFromD<D> MaskedReduceMax(D d, M m, VFromD<D> v) {
+  using T = TFromD<D>;
+  const ScalableTag<T> d1;
+  return detail::MaskedRedMax(
+      d, m, v, Set(d1, hwy::NegativeInfOrLowestValue<T>()));
+}
+
+#undef HWY_RVV_MASKED_REDUCE
 
 // ------------------------------ SumOfLanes
 
@@ -6682,6 +6766,7 @@ HWY_INLINE VFromD<D> Max128Upper(D d, VFromD<D> a, VFromD<D> b) {
 #undef HWY_RVV_INSERT_VXRM
 #undef HWY_RVV_M
 #undef HWY_RVV_RETM_ARGM
+#undef HWY_RVV_RETV_ARGMV
 #undef HWY_RVV_RETV_ARGMVV
 #undef HWY_RVV_RETV_ARGV
 #undef HWY_RVV_RETV_ARGVS
