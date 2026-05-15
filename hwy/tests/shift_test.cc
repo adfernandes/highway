@@ -456,6 +456,75 @@ HWY_NOINLINE void TestAllRoundingShiftRight() {
   ForIntegerTypes(ForPartialVectors<TestRoundingShiftRight>());
 }
 
+template <typename ToT>
+struct TestShiftRightAndDemoteTo {
+  template <int kShiftAmt, class DTo, class V>
+  static HWY_INLINE void Verify(DTo to_d, V in, const char* filename,
+                                const int line) {
+    AssertVecEqual(to_d, DemoteTo(to_d, ShiftRight<kShiftAmt>(in)),
+                   ShiftRightAndDemoteTo<kShiftAmt>(to_d, in), filename, line);
+    AssertVecEqual(to_d, DemoteTo(to_d, RoundingShiftRight<kShiftAmt>(in)),
+                   RoundingShiftRightAndDemoteTo<kShiftAmt>(to_d, in), filename,
+                   line);
+  }
+
+  template <typename T, class DFrom>
+  HWY_NOINLINE void operator()(T /*unused*/, DFrom from_d) {
+    static_assert(sizeof(T) > sizeof(ToT), "Input type must be wider");
+    const Rebind<ToT, DFrom> to_d;
+
+    using TU = MakeUnsigned<T>;
+    const auto iota1 = Add(Iota(from_d, T{0}), Set(from_d, T{1}));
+    const auto seq_neg = Add(iota1, SignBit(from_d));
+    const auto seq_sat =
+        Or(Xor(iota1, Set(from_d, static_cast<T>(0x6ED498B16EC87C63ULL &
+                                                 LimitsMax<TU>()))),
+           Set(from_d, T{1}));
+
+    Verify<0>(to_d, iota1, __FILE__, __LINE__);
+    Verify<0>(to_d, seq_neg, __FILE__, __LINE__);
+    Verify<1>(to_d, iota1, __FILE__, __LINE__);
+    Verify<1>(to_d, seq_neg, __FILE__, __LINE__);
+    Verify<1>(to_d, seq_sat, __FILE__, __LINE__);
+    Verify<static_cast<int>(sizeof(ToT) * 4)>(to_d, seq_neg, __FILE__,
+                                              __LINE__);
+    Verify<static_cast<int>(sizeof(ToT) * 8 - 1)>(to_d, seq_sat, __FILE__,
+                                                  __LINE__);
+    Verify<static_cast<int>(sizeof(ToT) * 8)>(to_d, seq_sat, __FILE__,
+                                              __LINE__);
+    Verify<static_cast<int>(sizeof(T) * 8 - 1)>(to_d, seq_neg, __FILE__,
+                                                __LINE__);
+  }
+};
+
+HWY_NOINLINE void TestAllShiftRightAndDemoteTo() {
+  const ForDemoteVectors<TestShiftRightAndDemoteTo<uint8_t>> from_i16_to_u8;
+  from_i16_to_u8(int16_t());
+  from_i16_to_u8(uint16_t());
+
+  const ForDemoteVectors<TestShiftRightAndDemoteTo<int8_t>> from_i16_to_i8;
+  from_i16_to_i8(int16_t());
+  from_i16_to_i8(uint16_t());
+
+  const ForDemoteVectors<TestShiftRightAndDemoteTo<uint16_t>> from_i32_to_u16;
+  from_i32_to_u16(int32_t());
+  from_i32_to_u16(uint32_t());
+
+  const ForDemoteVectors<TestShiftRightAndDemoteTo<int16_t>> from_i32_to_i16;
+  from_i32_to_i16(int32_t());
+  from_i32_to_i16(uint32_t());
+
+#if HWY_HAVE_INTEGER64
+  const ForDemoteVectors<TestShiftRightAndDemoteTo<uint32_t>> from_i64_to_u32;
+  from_i64_to_u32(int64_t());
+  from_i64_to_u32(uint64_t());
+
+  const ForDemoteVectors<TestShiftRightAndDemoteTo<int32_t>> from_i64_to_i32;
+  from_i64_to_i32(int64_t());
+  from_i64_to_i32(uint64_t());
+#endif
+}
+
 struct TestVariableRoundingShr {
   template <typename T, class D>
   HWY_NOINLINE void operator()(T /*unused*/, D d) {
@@ -755,6 +824,7 @@ HWY_BEFORE_TEST(HwyShiftTest);
 HWY_EXPORT_AND_TEST_P(HwyShiftTest, TestAllShifts);
 HWY_EXPORT_AND_TEST_P(HwyShiftTest, TestAllVariableShifts);
 HWY_EXPORT_AND_TEST_P(HwyShiftTest, TestAllRoundingShiftRight);
+HWY_EXPORT_AND_TEST_P(HwyShiftTest, TestAllShiftRightAndDemoteTo);
 HWY_EXPORT_AND_TEST_P(HwyShiftTest, TestAllVariableRoundingShr);
 HWY_EXPORT_AND_TEST_P(HwyShiftTest, TestAllMaskedShift);
 HWY_EXPORT_AND_TEST_P(HwyShiftTest, TestAllMultiRotateRight);

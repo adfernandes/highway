@@ -5557,6 +5557,41 @@ HWY_API V RoundingShr(V v, V amt) {
 
 #endif  // HWY_NATIVE_ROUNDING_SHR
 
+// ------------------------------ ShiftRightAndDemoteTo (DemoteTo, ShiftRight)
+
+// NEON overrides this with a fused saturating shift-narrow.
+// TODO: also override on SVE2/RVV/LSX/LASX.
+#if (defined(HWY_NATIVE_SHIFT_RIGHT_AND_DEMOTE) == defined(HWY_TARGET_TOGGLE))
+#ifdef HWY_NATIVE_SHIFT_RIGHT_AND_DEMOTE
+#undef HWY_NATIVE_SHIFT_RIGHT_AND_DEMOTE
+#else
+#define HWY_NATIVE_SHIFT_RIGHT_AND_DEMOTE
+#endif
+
+template <int kShiftAmt, class DN, class V, HWY_IF_NOT_FLOAT_NOR_SPECIAL_D(DN),
+          HWY_IF_NOT_FLOAT_NOR_SPECIAL_V(V),
+          hwy::EnableIf<(sizeof(TFromD<DN>) < sizeof(TFromV<V>))>* = nullptr>
+HWY_API VFromD<DN> ShiftRightAndDemoteTo(DN dn, V v) {
+  using T = TFromV<V>;
+  static_assert(
+      0 <= kShiftAmt && kShiftAmt <= static_cast<int>(sizeof(T) * 8 - 1),
+      "kShiftAmt is out of range");
+  return DemoteTo(dn, ShiftRight<kShiftAmt>(v));
+}
+
+template <int kShiftAmt, class DN, class V, HWY_IF_NOT_FLOAT_NOR_SPECIAL_D(DN),
+          HWY_IF_NOT_FLOAT_NOR_SPECIAL_V(V),
+          hwy::EnableIf<(sizeof(TFromD<DN>) < sizeof(TFromV<V>))>* = nullptr>
+HWY_API VFromD<DN> RoundingShiftRightAndDemoteTo(DN dn, V v) {
+  using T = TFromV<V>;
+  static_assert(
+      0 <= kShiftAmt && kShiftAmt <= static_cast<int>(sizeof(T) * 8 - 1),
+      "kShiftAmt is out of range");
+  return DemoteTo(dn, RoundingShiftRight<kShiftAmt>(v));
+}
+
+#endif  // HWY_NATIVE_SHIFT_RIGHT_AND_DEMOTE
+
 // ------------------------------ MulEvenAdd (PromoteEvenTo)
 
 // SVE with bf16 and NEON with bf16 override this.

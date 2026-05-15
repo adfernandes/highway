@@ -2120,6 +2120,19 @@ obtain the `D` that describes the return type.
     <code>Vec&lt;D&gt; **DemoteTo**(D, V v)</code>: narrows float to half (for
     bf16, it is unspecified whether this truncates or rounds).
 
+*   `V`,`D`: any `(V, D)` accepted by `DemoteTo`, with `V` and `TFromD<D>`
+    integer \
+    <code>Vec&lt;D&gt; **ShiftRightAndDemoteTo**&lt;int kShiftAmt&gt;(D, V
+    v)</code>: equivalent to `DemoteTo(D, ShiftRight<kShiftAmt>(v))`. TODO:
+    implement on SVE2/RVV/LSX/LASX.
+
+*   `V`,`D`: any `(V, D)` accepted by `DemoteTo`, with `V` and `TFromD<D>`
+    integer \
+    <code>Vec&lt;D&gt; **RoundingShiftRightAndDemoteTo**&lt;int kShiftAmt&gt;(D,
+    V v)</code>: equivalent to
+    `DemoteTo(D, RoundingShiftRight<kShiftAmt>(v))`. TODO: implement on
+    SVE2/RVV/LSX/LASX.
+
 #### Single vector promotion
 
 These functions promote a half vector to a full vector. To obtain halves, use
